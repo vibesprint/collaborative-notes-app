@@ -1,0 +1,26 @@
+body {
+    margin: 0;
+}
+
+.body {
+    display: grid;
+    grid-template-areas:
+    "nav nav"
+    "sidebar main";
+    grid-template-columns: 1fr 80%;
+    gap: 0.5rem;
+}
+
+.nav {
+    grid-area: nav;
+    height: 50px;
+    width: 100%;
+    background-color: yellow;
+    justify-items: center;
+}
+
+.links {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+}

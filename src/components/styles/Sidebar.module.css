@@ -1,0 +1,17 @@
+.sidebarNormal {
+    height: 75vh;
+    width: 100%;
+    background-color: lemonchiffon;
+    justify-items: center;
+}
+
+.sidebarLoggedIn {
+    height: 75vh;
+    width: 100%;
+    background-color: green;
+    justify-items: center;
+}
+
+.content {
+    padding: 1rem;
+}
