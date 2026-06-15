@@ -6,7 +6,7 @@ import { getSidebarByLogIn } from './Sidebar.jsx'
 import { useAuth } from '../features/auth/auth.jsx'
 
 export function AppShell() {
-    const loggedIn = useAuth(state => state.loggedIn)
+    const loggedIn = useAuth(state => !!state.session)
     const Sidebar = getSidebarByLogIn(loggedIn)
 
     return (
@@ -17,6 +17,7 @@ export function AppShell() {
                  <div className={styles.links}>
                   <Link to="/">Home</Link>
                   { !loggedIn && <Link to="/login">Login</Link> }
+                  { !loggedIn && <Link to="/signup">Sign up</Link> }
                   { loggedIn && <Link to="/logout">Logout</Link> }
                  </div>
             </div>

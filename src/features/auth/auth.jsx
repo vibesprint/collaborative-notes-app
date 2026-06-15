@@ -1,20 +1,32 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export const useAuth = create(persist((set) => ({
-    loggedIn: false,
-    login: (username, password) => {
-        if (username === "admin" && password === "admin")
-        {
-            set({ loggedIn: true })
-            return [true, null]
-        }
-        set({ loggedIn: false })
-        return [false, 'invalid username or password']
+import { loginWithEmail, logout as supabaseLogout, supabase, signUpWithEmail } from '../../lib/supabase/auth.js'
+
+export const useAuth = create((set) => ({
+    session: null,
+    loading: true,
+    user: null,
+    login: async (username, password) => {
+        const { data, error } = await loginWithEmail(username, password)
+
+        return error ? [false, error.message] : [true, null]
     },
 
-    logout: () => {
-        set({ loggedIn: false })
-        return [true, null]
+    logout: async () => {
+        const { error } = await supabaseLogout()
+        return error ? [false, error.message] : [true, null]
+    },
+    signUp: async (email, password) => {
+        const { error } = await signUpWithEmail(email, password)
+        return (error != null) ? [false, error.message] : [true, null]
     }
-}), { name: 'login-state' }))
+}))
+
+supabase.auth.getSession().then(({data: { session }}) => {
+    useAuth.setState({ session, user: session?.user ?? null, loading: false })
+})
+
+supabase.auth.onAuthStateChange((_event, session) => {
+    useAuth.setState({ session, user: session?.user ?? null, loading: false })
+})

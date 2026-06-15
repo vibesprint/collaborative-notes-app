@@ -1,6 +1,9 @@
 import styles from './styles/UnauthorizedPage.module.css'
+import { useAuth } from './features/auth/auth.jsx'
 
-export function ProtectedRoute({ loggedIn, children }) {
+export function ProtectedRoute({ children }) {
+    const loggedIn = useAuth(state => !!state.session)
+
     if (!loggedIn) {
         return <UnauthorizedPage />
     }

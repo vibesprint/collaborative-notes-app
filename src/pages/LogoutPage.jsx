@@ -10,12 +10,13 @@ export function LogoutPage() {
 
     useEffect(() => {
 
-        const [succ, msg] = logout()
-        if(!succ) {
-            setError(msg)
-            return
-        }
-        setTimeout(() => setSuccess(succ), 2000)
+        logout().then(([success, errmsg]) => {
+            if (!success) {
+                setError(errmsg)
+                return
+            }
+            setTimeout(() => setSuccess(success), 1000)
+        })
 
     }, [])
 

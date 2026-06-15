@@ -3,11 +3,10 @@ import { AppShell } from './components/AppShell.jsx'
 import { NotFoundPage } from './pages/NotFoundPage.jsx'
 import { LoginPage } from './pages/LoginPage.jsx'
 import { LogoutPage } from './pages/LogoutPage.jsx'
+import { SignUpPage } from './pages/SignUpPage.jsx'
 import { ProtectedRoute } from './ProtectedRoute.jsx'
 
 import { useState } from 'react'
-
-import { useAuth } from './features/auth/auth.jsx'
 
 export function App() {
 
@@ -17,6 +16,7 @@ export function App() {
             <Route index element={<div />}/>
             <Route path="/login" element={<LoginPage />}/>
             <Route path="/logout" element={<LogoutPage />}/>
+            <Route path="/signup" element={<SignUpPage />}/>
             <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <h1>Dashboard</h1>
