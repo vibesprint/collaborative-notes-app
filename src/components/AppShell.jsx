@@ -3,7 +3,10 @@ import styles from './styles/AppShell.module.css'
 import { Routes, Route, Outlet, Link } from 'react-router'
 import { getSidebarByLogIn } from './Sidebar.jsx'
 
-export function AppShell({ loggedIn }) {
+import { useAuth } from '../features/auth/auth.jsx'
+
+export function AppShell() {
+    const loggedIn = useAuth(state => state.loggedIn)
     const Sidebar = getSidebarByLogIn(loggedIn)
 
     return (

@@ -7,25 +7,18 @@ import { ProtectedRoute } from './ProtectedRoute.jsx'
 
 import { useState } from 'react'
 
+import { useAuth } from './features/auth/auth.jsx'
+
 export function App() {
-    const [loggedIn, setLoggedIn] = useState(false)
-
-    function handleLogin() {
-        setLoggedIn(true)
-    }
-
-    function handleLogout() {
-        setLoggedIn(false)
-    }
 
     return (
         <Routes>
-          <Route element={<AppShell loggedIn={loggedIn} />}>
+          <Route element={<AppShell />}>
             <Route index element={<div />}/>
-            <Route path="/login" element={<LoginPage loggedIn={loggedIn} onLogin={handleLogin} />}/>
-            <Route path="/logout" element={<LogoutPage onLogout={handleLogout} />}/>
+            <Route path="/login" element={<LoginPage />}/>
+            <Route path="/logout" element={<LogoutPage />}/>
             <Route path="/dashboard" element={
-                <ProtectedRoute loggedIn={loggedIn}>
+                <ProtectedRoute>
                   <h1>Dashboard</h1>
                 </ProtectedRoute>
             } />
