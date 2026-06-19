@@ -1,7 +1,7 @@
 import styles from './styles/Notes.module.css'
 import * as routes from '../routes.jsx'
 import { supabase } from '../lib/supabase/client.js'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router'
@@ -102,22 +102,28 @@ function NotesList() {
 
 
 
+import { MDXEditor, headingsPlugin, listsPlugin, quotePlugin, thematicBreakPlugin } from '@mdxeditor/editor'
+import '@mdxeditor/editor/style.css'
+
+const MDXEditorPlugins = [headingsPlugin(), listsPlugin(), quotePlugin(), thematicBreakPlugin()]
+
 export function CreateNote() {
 
-    const [body, setBody] = useState('')
     const [title, setTitle] = useState('')
+
+    const bodyRef = useRef(null)
 
     const createNote = useCreateNote()
 
     const handleSubmit = (event) => {
         event.preventDefault()
-        createNote.mutate(title, body)
+        createNote.mutate(title, bodyRef.current?.getMarkdown())
     }
 
     useEffect(() => {
         if (!createNote.isError && !createNote.isSuccess) return;
         if (createNote.isSuccess) {
-            setBody('')
+            bodyRef.current?.setMarkdown('')
             setTitle('')
         }
         const timer = setTimeout(() => createNote.reset(), 3000)
@@ -133,7 +139,7 @@ export function CreateNote() {
           <form onSubmit={handleSubmit} className="container" >
             <textarea value={title} style={{ height: '2rem' }} name="title" onChange={(event) => setTitle(event.target.value)}
                 placeholder={'Title'} />
-            <textarea value={body} style={{ height: '6rem' }} name="body" onChange={(event) => setBody(event.target.value)}
+            <MDXEditor ref={bodyRef} markdown={''} plugins={MDXEditorPlugins} name="body"
                  placeholder={'Body of the note'} />
             <button type="submit">Make a note</button>
           </form>
@@ -166,10 +172,7 @@ export function EditNote() {
 function EditNoteForm({ note }) {
 
     const [title, setTitle] = useState(note.title)
-    const [body, setBody] = useState(note.body)
-
-    console.log('title', title)
-    console.log('body', body)
+    const bodyRef = useRef(null)
 
     const updateNote = useUpdateNote(note.id)
 
@@ -182,7 +185,7 @@ function EditNoteForm({ note }) {
 
     function handleSubmit(event) {
         event.preventDefault()
-        updateNote.mutate({ note_id: note.id, title, body })
+        updateNote.mutate({ note_id: note.id, title, body: bodyRef.current?.getMarkdown() })
     }
 
 
@@ -195,7 +198,7 @@ function EditNoteForm({ note }) {
           <form onSubmit={handleSubmit} className="container" >
             <textarea value={title} style={{ height: '2rem' }} name="title" onChange={(event) => setTitle(event.target.value)}
                 placeholder={'Title'} />
-            <textarea value={body} style={{ height: '6rem' }} name="body" onChange={(event) => setBody(event.target.value)}
+            <MDXEditor ref={bodyRef} markdown={note.body} plugins={MDXEditorPlugins} name="body"
                  placeholder={'Body of the note'} />
             <button type="submit">Update note</button>
           </form>
