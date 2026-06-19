@@ -1,0 +1,16 @@
+.main {
+    display: flex;
+    row-gap: 1rem;
+    flex-direction: column;
+}
+
+.header {
+    display: flex;
+    justify-items: center;
+}
+
+.deleteModal {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+}

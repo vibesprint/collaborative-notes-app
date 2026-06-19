@@ -1,7 +1,7 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 
-import { loginWithEmail, logout as supabaseLogout, supabase, signUpWithEmail } from '../../lib/supabase/auth.js'
+import { loginWithEmail, logout as supabaseLogout, signUpWithEmail } from '../../lib/supabase/auth.js'
+import { supabase } from '../../lib/supabase/client.js'
 
 export const useAuth = create((set) => ({
     session: null,
@@ -17,16 +17,17 @@ export const useAuth = create((set) => ({
         const { error } = await supabaseLogout()
         return error ? [false, error.message] : [true, null]
     },
-    signUp: async (email, password) => {
-        const { error } = await signUpWithEmail(email, password)
+    signUp: async (email, password, options) => {
+        const { error } = await signUpWithEmail(email, password, options)
         return (error != null) ? [false, error.message] : [true, null]
     }
 }))
 
-supabase.auth.getSession().then(({data: { session }}) => {
-    useAuth.setState({ session, user: session?.user ?? null, loading: false })
-})
 
 supabase.auth.onAuthStateChange((_event, session) => {
-    useAuth.setState({ session, user: session?.user ?? null, loading: false })
+    useAuth.setState({
+        session: session,
+        loading: false,
+        user: session?.user ?? null
+    })
 })

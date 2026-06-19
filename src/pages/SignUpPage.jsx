@@ -8,7 +8,7 @@ export function SignUpPage() {
 
     if (loggedIn) {
         return (
-            <h1>Logout of this accout to sign up with a new account</h1>
+            <Navigate to="/" />
         )
     }
 
@@ -21,10 +21,11 @@ function SignUpForm() {
     const signUp = useAuth(state => state.signUp)
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [first_name, setFirstName] = useState('')
+    const [last_name, setLastName] = useState('')
 
     const [error, setError] = useState('')
     const [notice, setNotice] = useState('')
-    const [success, setSuccess] = useState(false)
 
     useEffect(() => {
         if (error === '') return;
@@ -32,21 +33,13 @@ function SignUpForm() {
         return () => clearTimeout(timer)
     }, [error, setError])
 
-    if (success) {
-        return <Navigate to="/login" />
-    }
-
 
     function handleSubmit(event) {
         event.preventDefault()
-        signUp().then(([success, errmsg]) => {
+        signUp(email, password, { options: { data: { first_name, last_name } } }).then(([success, errmsg]) => {
             if (!success) {
                 setError(errmsg)
-                setSuccess(false)
                 setNotice('')
-            } else {
-                setTimeout(() => setSuccess(true), 2000)
-                setNotice('Sign up successful, redirecting')
             }
         })
 
@@ -59,8 +52,24 @@ function SignUpForm() {
           {error !== '' && <p style={{ color: 'red' }}>Error: {error}</p>}
           {notice !== '' && <p style={{ color: 'blue' }}>{notice}</p>}
           <form onSubmit={handleSubmit} className={styles.content} >
-            <input type="email" value={email} name="email" onChange={(event) => setEmail(event.target.value)} />
-            <input type="password" value={password} name="password" onChange={(event) => setPassword(event.target.value)} />
+            <label>
+             First Name:
+             <input required type="text" value={first_name} name="first_name" onChange={(event) => setFirstName(event.target.value)} />
+            </label>
+
+            <label>
+             Last Name:
+             <input type="text" value={last_name} name="last_name" onChange={(event) => setLastName(event.target.value)} />
+            </label>
+
+            <label >
+              Email:
+              <input type="email" value={email} name="email" onChange={(event) => setEmail(event.target.value)} />
+           </label>
+            <label>
+             Password:
+             <input type="password" value={password} name="password" onChange={(event) => setPassword(event.target.value)} />
+            </label>
             <button type="submit">Make an account </button>
           </form>
          </div>

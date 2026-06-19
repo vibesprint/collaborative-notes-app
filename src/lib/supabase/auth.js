@@ -1,7 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from './client.js'
 import { create } from 'zustand'
 
-export const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY)
 
 export async function loginWithEmail(username, password) {
     const { data, error }  = await supabase.auth.signInWithPassword({
@@ -19,10 +18,12 @@ export async function logout() {
     return result;
 }
 
-export async function signUpWithEmail(email, password) {
+export async function signUpWithEmail(email, password, args) {
+    const { options } = args
     const result = await supabase.auth.signUp({
         email,
-        password
+        password,
+        options
     })
 
     return result
