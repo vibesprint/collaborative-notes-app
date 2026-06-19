@@ -7,6 +7,7 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router'
 
 import { useCreateNote, useDeleteNote, useGetNotes, useNote, useUpdateNote } from '../features/notes/note.js'
+import { useWorkspaceMember } from '../features/workspaces/workspace.js'
 
 export function Notes() {
     return (
@@ -81,7 +82,7 @@ function NotesList() {
             return (
                 <tr key={elem.id}>
                   <td>
-                    {elem.title.slice(null, 30) + (elem.title.length <= 30 ? '': ' ...')}
+                    <a href={routes.GET_NOTE(elem.id)}>{elem.title.slice(null, 30) + (elem.title.length <= 30 ? '': ' ...')}</a>
                   </td>
 
                   <td>
@@ -117,7 +118,7 @@ export function CreateNote() {
 
     const handleSubmit = (event) => {
         event.preventDefault()
-        createNote.mutate(title, bodyRef.current?.getMarkdown())
+        createNote.mutate({title, body: bodyRef.current?.getMarkdown()})
     }
 
     useEffect(() => {
@@ -205,4 +206,44 @@ function EditNoteForm({ note }) {
          </div>
         </div>
     )
+}
+
+
+export function Note() {
+    const note_id = useParams().id
+
+    const { isLoading, isError, isSuccess, data: note } = useNote(note_id)
+
+    if (isLoading)
+        return <h1>Loading note details ...</h1>
+
+    if (isError)
+        return <h1>Error occured while loading note, consider retrying </h1>
+
+    return (
+        <div>
+          <h1>Note details</h1>
+          <div>
+            <h2>{note.title}</h2>
+            <br/>
+            <p>{note.body}</p>
+            <br/>
+        <p>Created by: {<MemberEmail note={note} />}</p>
+            <p>Created at: {note.created_at}</p>
+           </div>
+
+         </div>
+    )
+}
+
+function MemberEmail({ note }) {
+    const { isLoading, isError, data } = useWorkspaceMember(note.user_id)
+
+    if (isLoading)
+        return 'Loading ...'
+
+    if (isError)
+        return 'errored'
+
+    return data.email
 }

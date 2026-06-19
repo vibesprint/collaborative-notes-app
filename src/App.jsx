@@ -9,7 +9,7 @@ import { SignUpPage } from './pages/SignUpPage.jsx'
 import { ProtectedRoute } from './ProtectedRoute.jsx'
 import { HomePage, HomePageNotLoggedIn } from './pages/HomePage.jsx'
 import { Workspaces, CreateWorkspace } from './pages/Workspaces.jsx'
-import { Notes, CreateNote, EditNote } from './pages/Notes.jsx'
+import { Notes, CreateNote, EditNote, Note } from './pages/Notes.jsx'
 
 import { useInitializeWorkspace } from './features/workspaces/workspace.js'
 
@@ -61,6 +61,12 @@ export function App() {
         <Route path={routes.EDIT_NOTE} element={
             <ProtectedRoute>
               <EditNote />
+            </ProtectedRoute>
+        } />
+
+        <Route path={routes.NOTE} element={
+            <ProtectedRoute>
+              <Note />
             </ProtectedRoute>
         } />
             <Route path="/login" element={<LoginPage />}/>

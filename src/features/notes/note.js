@@ -16,7 +16,7 @@ export function useCreateNote() {
 }
 
 
-async function createNote(title, body) {
+async function createNote({title, body}) {
     const user_id = useAuth.getState().session?.user?.id
     const workspace_id = getCurrentWorkspaceId()
 

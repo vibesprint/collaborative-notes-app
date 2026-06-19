@@ -15,6 +15,7 @@ export const QUERY_KEYS = {
     list: () => [...QUERY_KEYS.all, 'list'],
     scoped: (id) => [...QUERY_KEYS.all, 'scoped', id],
     notes: (id) => [...QUERY_KEYS.scoped(id), 'notes'],
+    member: (wsId, userId) => [...QUERY_KEYS.scoped(wsId), 'member', userId]
 }
 
 const useWorkspaceStore = zustandCreate((set) =>({
@@ -130,4 +131,21 @@ export function useInitializeWorkspace() {
             setCurrentWorkspace(data[0]?.id ?? null, data[0]?.name ?? null)
         }
     }, [isSuccess, data, currentWorkspaceId, setCurrentWorkspaceId])
+}
+
+
+async function getMember(cur_user_id) {
+    const { data, error } = await supabase.rpc('get_workspace_member', { cur_user_id: cur_user_id })
+    if (error != null)
+        throw error
+
+    return data[0]
+}
+
+export function useWorkspaceMember(user_id) {
+    const wsId = useCurrentWorkspaceId()
+    return useQuery({
+        queryKey: QUERY_KEYS.member(wsId, user_id),
+        queryFn: () => getMember(user_id)
+    })
 }
