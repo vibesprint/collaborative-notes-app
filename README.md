@@ -31,3 +31,8 @@ Delete a workspace :-
         Remove the membership from members table
       else:
           do nothing
+
+
+## Autosave cycle
+When the update note form first loads, it shows unchanged. When the user makes any change in the title or the body,
+it shows unsaved status and autosaves after 1 second. Autosave happens happens after 1 second of only the last edit.

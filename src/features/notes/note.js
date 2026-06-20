@@ -105,10 +105,22 @@ export function useUpdateNote(note_id) {
                 queryKey: QUERY_KEYS.details(note_id)
             })
 
-            const previous = context.client.getQueryData(QUERY_KEYS.details(note_id))
-            context.client.setQueryData(QUERY_KEYS.details(note_id), (old) => ({...old, ...args}))
+            context.client.cancelQueries({
+                queryKey: QUERY_KEYS.list()
+            })
 
-            return { previous }
+            const previous_note = context.client.getQueryData(QUERY_KEYS.details(note_id))
+            const previous_list = context.client.getQueryData(QUERY_KEYS.list())
+            context.client.setQueryData(QUERY_KEYS.details(note_id), (old) => ({...old, ...args}))
+            context.client.setQueryData(QUERY_KEYS.list(), (old_list) => {
+                return old_list.map((note) => {
+                    if (note.id === note_id)
+                        return args
+                    return note
+                })
+            })
+
+            return { previous_note, previous_list }
         },
 
         onSettled: (data, error, args, onMutateResult, context) => {
@@ -119,7 +131,8 @@ export function useUpdateNote(note_id) {
         },
 
         onError: (error, args, onMutateResult, context) => {
-            context.client.setQueryData(QUERY_KEYS.details(note_id), onMutateResult.previous)
+            context.client.setQueryData(QUERY_KEYS.details(note_id), onMutateResult.previous_note)
+            context.client.setQueryData(QUERY_KEYS.list(), onMutateResult.previous_list)
         }
     })
 }
