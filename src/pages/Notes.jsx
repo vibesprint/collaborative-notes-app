@@ -173,34 +173,48 @@ export function EditNote() {
 function EditNoteForm({ note }) {
 
     const [title, setTitle] = useState(note.title)
-    const bodyRef = useRef(null)
+    const [body, setBody] = useState(note.body)
+    const firstRender = useRef(true)
+
+    const [dirty, setDirty] = useState(false)
 
     const updateNote = useUpdateNote(note.id)
 
-    useEffect(() => {
-        if (!updateNote.isError && !updateNote.isSuccess) return;
-        const timer = setTimeout(() => updateNote.reset(), 3000)
-        return () => clearTimeout(timer)
-    }, [updateNote.isError, updateNote.isSuccess])
-
-
     function handleSubmit(event) {
         event.preventDefault()
-        updateNote.mutate({ note_id: note.id, title, body: bodyRef.current?.getMarkdown() })
+        updateNote.reset()
+        updateNote.mutate({ note_id: note.id, title, body })
     }
 
+    useEffect(() => {
+        if (firstRender.current) {
+            firstRender.current = false
+            return
+        }
+
+        setDirty(true)
+        updateNote.reset()
+        const timer = setTimeout(() => {
+            updateNote.mutate({ note_id: note.id, title, body})
+        }, 1000)
+
+        return () => clearTimeout(timer)
+    }, [title, body])
+
+    const status = updateNote.isPending ? {text: 'Saving ...', color: 'blue' }
+                 : updateNote.isError ? {text: 'error, unable to save', color: 'red' }
+                 : updateNote.isSuccess ? {text: 'Saved', color: 'green'}
+                 : { text: dirty ? 'Unsaved' : 'Unchanged', color: 'inherit' }
 
     return (
         <div className="main">
          <div className="container">
-          {updateNote.isError && <p style={{ color: 'red' }}>Error: {updateNote.error.message}</p>}
-          {updateNote.isPending && <p style={{ color: 'blue' }}>Updating note ...</p>}
-          {updateNote.isSuccess && <p style={{ color: 'green' }}>Note successfully updated!</p>}
+          <p style={{color: status.color}}>{status.text}</p>
           <form onSubmit={handleSubmit} className="container" >
             <textarea value={title} style={{ height: '2rem' }} name="title" onChange={(event) => setTitle(event.target.value)}
                 placeholder={'Title'} />
-            <MDXEditor ref={bodyRef} markdown={note.body} plugins={MDXEditorPlugins} name="body"
-                 placeholder={'Body of the note'} />
+            <MDXEditor markdown={note.body} plugins={MDXEditorPlugins} name="body"
+                 placeholder={'Body of the note'} onChange={setBody} />
             <button type="submit">Update note</button>
           </form>
          </div>

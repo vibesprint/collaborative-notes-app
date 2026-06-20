@@ -71,7 +71,6 @@ async function getNote(note_id) {
     if (error != null)
         throw error
 
-    console.log('got the data from network', data)
     return data[0]
 }
 
