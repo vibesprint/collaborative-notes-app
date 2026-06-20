@@ -1,13 +1,14 @@
 import styles from './styles/Notes.module.css'
 import * as routes from '../routes.jsx'
 import { supabase } from '../lib/supabase/client.js'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router'
 
 import { useCreateNote, useDeleteNote, useGetNotes, useNote, useUpdateNote } from '../features/notes/note.js'
 import { useWorkspaceMember } from '../features/workspaces/workspace.js'
+
 
 export function Notes() {
     return (
@@ -170,6 +171,8 @@ export function EditNote() {
 
 }
 
+import { debounce } from '../features/utils/debounce.js'
+
 function EditNoteForm({ note }) {
 
     const [title, setTitle] = useState(note.title)
@@ -180,26 +183,27 @@ function EditNoteForm({ note }) {
 
     const updateNote = useUpdateNote(note.id)
 
+    const debounceSave = useMemo(() => debounce(updateNote.mutate, 1000), [])
+
     function handleSubmit(event) {
         event.preventDefault()
         updateNote.reset()
         updateNote.mutate({ note_id: note.id, title, body })
     }
 
-    useEffect(() => {
-        if (firstRender.current) {
-            firstRender.current = false
-            return
-        }
-
-        setDirty(true)
+    function handleTitleChange(event) {
         updateNote.reset()
-        const timer = setTimeout(() => {
-            updateNote.mutate({ note_id: note.id, title, body})
-        }, 1000)
+        setTitle(event.target.value)
+        setDirty(true)
+        debounceSave({ title: event.target.value, body, note_id: note.id })
+    }
 
-        return () => clearTimeout(timer)
-    }, [title, body])
+    function handleBodyChange(markdown) {
+        updateNote.reset()
+        setBody(markdown)
+        setDirty(true)
+        debounceSave({ title, body: markdown, note_id: note.id })
+    }
 
     const status = updateNote.isPending ? {text: 'Saving ...', color: 'blue' }
                  : updateNote.isError ? {text: 'error, unable to save', color: 'red' }
@@ -211,10 +215,10 @@ function EditNoteForm({ note }) {
          <div className="container">
           <p style={{color: status.color}}>{status.text}</p>
           <form onSubmit={handleSubmit} className="container" >
-            <textarea value={title} style={{ height: '2rem' }} name="title" onChange={(event) => setTitle(event.target.value)}
+            <textarea value={title} style={{ height: '2rem' }} name="title" onChange={handleTitleChange}
                 placeholder={'Title'} />
             <MDXEditor markdown={note.body} plugins={MDXEditorPlugins} name="body"
-                 placeholder={'Body of the note'} onChange={setBody} />
+                 placeholder={'Body of the note'} onChange={handleBodyChange} />
             <button type="submit">Update note</button>
           </form>
          </div>

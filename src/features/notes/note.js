@@ -90,10 +90,36 @@ async function updateNote({note_id, title, body}) {
 }
 
 export function useUpdateNote(note_id) {
-    const optimisticApply = (new_note, old_note) =>  ({ ...old_note, ...new_note })
-    return useOptimisticMutation({
+    const optimisticApply = (new_note, old_list) =>  (
+        old_list.map((note) => {
+            if (new_note.id === note.id) return new_note
+            else
+                return note
+        }
+    ))
+
+    return useMutation({
         mutationFn: ({ title, body }) => updateNote({ note_id, title, body }),
-        queryKey: QUERY_KEYS.details(note_id),
-        optimisticApply
+        onMutate: (args, context) => {
+            context.client.cancelQueries({
+                queryKey: QUERY_KEYS.details(note_id)
+            })
+
+            const previous = context.client.getQueryData(QUERY_KEYS.details(note_id))
+            context.client.setQueryData(QUERY_KEYS.details(note_id), (old) => ({...old, ...args}))
+
+            return { previous }
+        },
+
+        onSettled: (data, error, args, onMutateResult, context) => {
+            if (context.client.isMutating() === 1) {
+                context.client.invalidateQueries(QUERY_KEYS.details(note_id))
+                context.client.invalidateQueries(QUERY_KEYS.list())
+            }
+        },
+
+        onError: (error, args, onMutateResult, context) => {
+            context.client.setQueryData(QUERY_KEYS.details(note_id), onMutateResult.previous)
+        }
     })
 }

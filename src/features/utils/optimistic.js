@@ -18,7 +18,8 @@ export function useOptimisticMutation({ mutationFn, queryKey, optimisticApply })
         },
 
         onSettled: (data, err, args, onMutateResult, context) => {
-            context.client.invalidateQueries({ queryKey })
+            if (context.client.isMutating() == 1)
+                context.client.invalidateQueries({ queryKey })
         }
     })
 }
