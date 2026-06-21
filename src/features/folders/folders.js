@@ -6,7 +6,7 @@ const QUERY_KEYS = {
     all: ['folders'],
     root_list: () => [...QUERY_KEYS.all, 'list', 'root'],
     folder_list: (id) => [...QUERY_KEYS.all, 'list', id],
-    folder: (id) => [...QUERY_KEYS.all, 'details', id]
+    folder: (wspc_id, folder_id) => [...QUERY_KEYS.all, 'details', wspc_id, folder_id]
 }
 
 async function listRootFolders(workspace_id) {
@@ -27,8 +27,11 @@ export function useListRootFolders(workspace_id) {
 }
 
 async function listFoldersInFolder(folder) {
-    const { data, error } = await supabase.from('folders').eq('workspace_id', folder.workspace_id).eq('parent_id', folder.id).select()
-    if (error != null) throw error;
+    const { data, error } = await supabase.from('folders').select().eq('workspace_id', folder.workspace_id).eq('parent_id', folder.id)
+    if (error != null) {
+        console.log('error in list folders', error)
+        throw error;
+    }
 
     return data;
 }
@@ -41,8 +44,11 @@ export function useListFoldersInFolder(folder) {
 }
 
 async function listNotesInFolder(folder) {
-    const { data, error } = await supabase.from('notes').eq('workspace_id', folder.workspace_id).eq('folder_id', folder.id).select()
-    if (error != null) throw error;
+    const { data, error } = await supabase.from('notes').select().eq('workspace_id', folder.workspace_id).eq('folder_id', folder.id)
+    if (error != null) {
+        console.log('error is list notes', error)
+        throw error;
+    }
 
     return data;
 }
@@ -91,5 +97,19 @@ export function useDeleteFolder() {
                 queryKey
             })
         }
+    })
+}
+
+
+async function getFolder(workspace_id, folder_id) {
+    const { data, error } = await supabase.from('folders').select().match({ workspace_id, id: folder_id })
+    if (error != null) throw error;
+    return data[0];
+}
+
+export function useGetFolder(workspace_id, folder_id) {
+    return useQuery({
+        queryKey: QUERY_KEYS.folder(workspace_id, folder_id),
+        queryFn: () => getFolder(workspace_id, folder_id)
     })
 }

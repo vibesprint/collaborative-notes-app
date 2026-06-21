@@ -87,7 +87,7 @@ function NotesSearchForm() {
 
 }
 
-function NotesListTable({ notes, title }) {
+export function NotesListTable({ notes, title }) {
     const notesList = notes;
 
     const { isPending: tagsIsPending, isError: tagsIsError, isSuccess: tagsIsSuccess,
