@@ -14,3 +14,6 @@ export const NOTE = '/notes/:id'
 export const GET_NOTE = (note_id) => `/notes/${note_id}`
 
 export const FOLDERS_CREATE = '/folders/create'
+export const FOLDERS = '/folders'
+export const FOLDER = '/folder/:id'
+export const GET_FOLDER = (id) => `/folder/${id}`

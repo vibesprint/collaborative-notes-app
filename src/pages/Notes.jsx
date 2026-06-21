@@ -28,7 +28,6 @@ function NotesHeader() {
     return (
         <div className={styles.header} >
           <Link to={routes.NOTES_CREATE}>Create a note</Link>
-          <Link to={routes.FOLDERS_CREATE}>Create a folder</Link>
         </div>
     )
 }

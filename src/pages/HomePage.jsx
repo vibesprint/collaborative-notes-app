@@ -7,7 +7,8 @@ export function HomePage() {
         <div className={styles.main} >
           <div className={styles.container} >
             <Link to={routes.WORKSPACES}>Workspaces</Link>
-            <Link to={routes.NOTES}>Notes</Link>
+            <Link to={routes.NOTES}>Notes at the top level</Link>
+            <Link to={routes.FOLDERS}>Folders</Link>
           </div>
         </div>
     )

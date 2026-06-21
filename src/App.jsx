@@ -10,6 +10,7 @@ import { ProtectedRoute } from './ProtectedRoute.jsx'
 import { HomePage, HomePageNotLoggedIn } from './pages/HomePage.jsx'
 import { Workspaces, CreateWorkspace } from './pages/Workspaces.jsx'
 import { Notes, CreateNote, EditNote, Note } from './pages/Notes.jsx'
+import { Folders, ViewFolder, CreateFolder } from './pages/Folders.jsx'
 
 import { useInitializeWorkspace } from './features/workspaces/workspace.js'
 
@@ -69,6 +70,25 @@ export function App() {
               <Note />
             </ProtectedRoute>
         } />
+
+        <Route path={routes.FOLDERS} element={
+            <ProtectedRoute>
+              <Folders />
+            </ProtectedRoute>
+        } />
+
+        <Route path={routes.FOLDERS_CREATE} element={
+            <ProtectedRoute>
+              <CreateFolder />
+            </ProtectedRoute>
+        } />
+
+        <Route path={routes.FOLDER} element={
+            <ProtectedRoute>
+              <ViewFolder />
+            </ProtectedRoute>
+        } />
+
             <Route path="/login" element={<LoginPage />}/>
             <Route path="/logout" element={<LogoutPage />}/>
             <Route path="/signup" element={<SignUpPage />}/>
