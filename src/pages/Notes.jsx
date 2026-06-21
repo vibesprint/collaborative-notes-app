@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase/client.js'
 import { useState, useEffect, useRef, useMemo } from 'react'
 
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 
 import { useCreateNote, useDeleteNote, useGetNotes, useNote, useUpdateNote } from '../features/notes/note.js'
 import { useGetTagsForNotes, useAddTagToNote, useGetTagsForWorkspace, useDeleteTagFromNote } from '../features/tags/tags.js'
@@ -16,6 +16,7 @@ export function Notes() {
         <div className={styles.main} >
           <div className="container" >
             <NotesHeader />
+            <NotesSearchForm />
             <NotesList />
           </div>
         </div>
@@ -33,6 +34,7 @@ function NotesHeader() {
 
 function NotesList() {
     const { isPending, isError, isSuccess, isLoading, data, error } = useGetNotes()
+    const [searchParams, _] = useSearchParams()
 
     if (isLoading)
         return <h1>Loading notes</h1>
@@ -43,15 +45,47 @@ function NotesList() {
     if(!isSuccess)
         return <h1>Unknown error has occured, consider refreshing the page</h1>
 
-    return <NotesListTable notes={data} />
+    let filteredNotes = data
+    if (searchParams.has('q')) {
+        const key = searchParams.get('q').toLowerCase()
+        filteredNotes = filteredNotes.filter(note => note.title.toLowerCase().includes(key))
+    }
+
+    return <NotesListTable notes={filteredNotes} />
 }
 
+function NotesSearchForm() {
+
+    const [searchParams,setSearchParams] = useSearchParams()
+    const [search, setSearch] = useState(searchParams.get('q') ?? '')
+
+    function handleSearch(event) {
+        event.preventDefault()
+
+        if (search === '' || search == null)
+            searchParams.delete('q')
+        else
+            searchParams.set('q', search)
+
+        setSearchParams(searchParams)
+    }
+
+    return (
+        <form onSubmit={handleSearch} >
+         <label htmlFor="search_input" >Search: </label>
+         <input type='textbox' id="search_input" name="search" onChange={(event) => setSearch(event.target.value)} value={search} />
+        <button type="submit">Search</button>
+        </form>
+    )
+
+}
 
 function NotesListTable({ notes }) {
     const notesList = notes;
 
     const { isPending: tagsIsPending, isError: tagsIsError, isSuccess: tagsIsSuccess,
         data: tagsList, error: tagsError } = useGetTagsForNotes(notes)
+
 
     const navigate = useNavigate()
     const deleteNote = useDeleteNote()
@@ -78,6 +112,7 @@ function NotesListTable({ notes }) {
             tagsList[note_id].map(tag => <p key={tag.name}>{tag.name}</p>);
 
     }
+
 
     useEffect(() => {
         if (!deleteNote.isError && !deleteNote.isSuccess) return
@@ -324,17 +359,18 @@ function TagsList({ note, tags }) {
       : deleteTagFromNote.isSuccess ? 'Tag successfully deleted'
       : '';
 
-    return tags.map(tag => {
         return (
             <div >
             { pending_status != '' &&  <p>{pending_status}</p> }
-        <div >
+       { tags.map(tag => (
+        <div key={tag.id} >
             <p>{tag.name}</p>
             <button onClick={() => deleteTag(tag)}>Delete</button>
         </div>
 
+       )) }
             </div>
-    )})
+        )
 }
 
 function TagsDataList({ workspace_id, list_id }) {
@@ -342,13 +378,13 @@ function TagsDataList({ workspace_id, list_id }) {
 
     let options = []
     if (isError)
-        options = [(<datalist> <option value="Error loading list!" /> </datalist>)]
+        options = [(<datalist> <option key="error" value="Error loading list!" /> </datalist>)]
 
     if (isPending)
-        options = [(<datalist> <option value="Loading ..." /> </datalist>)]
+        options = [(<datalist> <option key="loading" value="Loading ..." /> </datalist>)]
 
     if (isSuccess)
-        options = data.map(tag => <option value={tag.name} />)
+        options = data.map(tag => <option key={tag.id} value={tag.name} />)
 
     return <datalist id={list_id}>
            { options }
