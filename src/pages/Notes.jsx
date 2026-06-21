@@ -28,6 +28,7 @@ function NotesHeader() {
     return (
         <div className={styles.header} >
           <Link to={routes.NOTES_CREATE}>Create a note</Link>
+          <Link to={routes.FOLDERS_CREATE}>Create a folder</Link>
         </div>
     )
 }
@@ -51,7 +52,14 @@ function NotesList() {
         filteredNotes = filteredNotes.filter(note => note.title.toLowerCase().includes(key))
     }
 
-    return <NotesListTable notes={filteredNotes} />
+    let recentlyEdited = [...filteredNotes].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 3)
+
+    return (
+        <>
+        { filteredNotes.length >= 5 && <NotesListTable notes={recentlyEdited} title="Recently Edited" /> }
+        <NotesListTable notes={filteredNotes} />
+        </>
+    )
 }
 
 function NotesSearchForm() {
@@ -80,7 +88,7 @@ function NotesSearchForm() {
 
 }
 
-function NotesListTable({ notes }) {
+function NotesListTable({ notes, title }) {
     const notesList = notes;
 
     const { isPending: tagsIsPending, isError: tagsIsError, isSuccess: tagsIsSuccess,
@@ -125,7 +133,7 @@ function NotesListTable({ notes }) {
         { deleteNote.isPending && <h4>Deleting note ...</h4> }
         { deleteNote.isError && <h4>Unable to delete note. Errored!</h4> }
         { deleteNote.isSuccess && <h4 style={{ color: 'green' }}>Note successfully deleted!</h4> }
-          <h1>Notes</h1>
+          <h1>{title ?? 'Notes'}</h1>
         { notesList.length > 0 ? <table>
             <thead>
               <tr>

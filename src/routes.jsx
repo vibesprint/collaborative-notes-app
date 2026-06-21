@@ -12,3 +12,5 @@ export const GET_EDIT_NOTE = (note_id) => {
 
 export const NOTE = '/notes/:id'
 export const GET_NOTE = (note_id) => `/notes/${note_id}`
+
+export const FOLDERS_CREATE = '/folders/create'
