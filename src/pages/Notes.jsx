@@ -7,7 +7,8 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router'
 
 import { useCreateNote, useDeleteNote, useGetNotes, useNote, useUpdateNote } from '../features/notes/note.js'
-import { useWorkspaceMember } from '../features/workspaces/workspace.js'
+import { useGetTagsForNotes, useAddTagToNote, useGetTagsForWorkspace, useDeleteTagFromNote } from '../features/tags/tags.js'
+import { useWorkspaceMember, useCurrentWorkspaceId } from '../features/workspaces/workspace.js'
 
 
 export function Notes() {
@@ -31,26 +32,7 @@ function NotesHeader() {
 }
 
 function NotesList() {
-    const navigate = useNavigate()
-
-    let notesList = []
     const { isPending, isError, isSuccess, isLoading, data, error } = useGetNotes()
-
-    const deleteNote = useDeleteNote()
-
-    function handleDelete(note_id) {
-        deleteNote.mutate(note_id)
-    }
-
-    function handleEdit(note_id) {
-        navigate(routes.GET_EDIT_NOTE(note_id))
-    }
-
-    useEffect(() => {
-        if (!deleteNote.isError && !deleteNote.isSuccess) return
-        const timer = setTimeout(() => deleteNote.reset(), 3000)
-        return () => clearTimeout(timer)
-    }, [deleteNote.isSuccess, deleteNote.isError])
 
     if (isLoading)
         return <h1>Loading notes</h1>
@@ -61,8 +43,47 @@ function NotesList() {
     if(!isSuccess)
         return <h1>Unknown error has occured, consider refreshing the page</h1>
 
-    if(isSuccess)
-        notesList = data
+    return <NotesListTable notes={data} />
+}
+
+
+function NotesListTable({ notes }) {
+    const notesList = notes;
+
+    const { isPending: tagsIsPending, isError: tagsIsError, isSuccess: tagsIsSuccess,
+        data: tagsList, error: tagsError } = useGetTagsForNotes(notes)
+
+    const navigate = useNavigate()
+    const deleteNote = useDeleteNote()
+
+    function handleDelete(note_id) {
+        deleteNote.mutate(note_id)
+    }
+
+    function handleEdit(note_id) {
+        navigate(routes.GET_EDIT_NOTE(note_id))
+    }
+
+    function getTagsFor(note_id) {
+        if (tagsIsPending)
+            return <p>Loading ...</p>
+
+        if (tagsIsError) {
+            console.log('tag loading error: ', tagsError)
+            return <p>Error: unable to load tags</p>
+        }
+
+        return tagsList[note_id].length === 0 ?
+            <p>No tags</p> :
+            tagsList[note_id].map(tag => <p key={tag.name}>{tag.name}</p>);
+
+    }
+
+    useEffect(() => {
+        if (!deleteNote.isError && !deleteNote.isSuccess) return
+        const timer = setTimeout(() => deleteNote.reset(), 3000)
+        return () => clearTimeout(timer)
+    }, [deleteNote.isSuccess, deleteNote.isError])
 
     return (
         <div >
@@ -75,6 +96,7 @@ function NotesList() {
               <tr>
                 <th>Title</th>
                 <th>Actions</th>
+                <th>Tags</th>
              </tr>
             </thead>
 
@@ -90,6 +112,9 @@ function NotesList() {
                    <button onClick={() => handleDelete(elem.id)}>Delete Note</button>
                    <button onClick={() => handleEdit(elem.id)}>Edit Note</button>
                   </td>
+                  <td>
+                   {getTagsFor(elem.id)}
+                </td>
                 </tr>
             )
         }) }
@@ -101,7 +126,6 @@ function NotesList() {
     </div>
     )
 }
-
 
 
 import { MDXEditor, headingsPlugin, listsPlugin, quotePlugin, thematicBreakPlugin } from '@mdxeditor/editor'
@@ -221,9 +245,114 @@ function EditNoteForm({ note }) {
                  placeholder={'Body of the note'} onChange={handleBodyChange} />
             <button type="submit">Update note</button>
           </form>
+          <NoteTagsForm note={note} />
          </div>
         </div>
     )
+}
+
+
+function NoteTagsForm({ note }) {
+    const { isPending, isError, isSuccess, data, error } = useGetTagsForNotes([note])
+    const currentWorkspaceId = useCurrentWorkspaceId()
+    const [tagname, setTagname] = useState('')
+    const addTag = useAddTagToNote()
+
+    function createTagDataList(id) {
+        return currentWorkspaceId == null ? (<datalist> <option value="Loading ..." /> </datalist>)
+         : (
+            <TagsDataList workspace_id={currentWorkspaceId} list_id={id} />
+        )
+    }
+
+    function handleSubmit(event) {
+        event.preventDefault()
+        if (tagname === '') return;
+        addTag.mutate({ note, tag_name: tagname })
+    }
+
+    const pending_status = addTag.isPending ? <p>Adding tag ...</p>
+        : addTag.isError ? <p>Error: unable to add tag!</p>
+        : addTag.isSuccess ? <p>Tag successfully added</p>
+        : null;
+
+    useEffect(() => {
+        if (!addTag.isError && !addTag.isSuccess) return
+        if (addTag.isSuccess)
+            setTagname('')
+        const timer = setTimeout(() => addTag.reset(), 3000)
+        return () => clearTimeout(timer)
+    }, [addTag.isError, addTag.isSuccess])
+
+    return (
+        <div >
+          { pending_status }
+          <form onSubmit={handleSubmit} >
+            <label htmlFor="tag-input">Choose or type a tag:</label>
+            <input list="tags-list" id="tag-input" name="tag" value={tagname} onChange={(event) => setTagname(event.target.value)} />
+            { createTagDataList("tags-list") }
+            <button type="submit">Add tag</button>
+          </form>
+        <div >
+          { (data == null && isPending) ? <p>Loading ...</p>
+              : (isSuccess && data[note.id].length === 0) ? <p>No tags </p>
+              : isSuccess ? <TagsList tags={data[note.id]} note={note} />
+              : <p>Error occured: unable to load tags</p>
+          }
+        </div>
+
+    </div>
+    )
+}
+
+function TagsList({ note, tags }) {
+    const deleteTagFromNote = useDeleteTagFromNote()
+    let deletingTags = []
+
+    function deleteTag(tag) {
+        deleteTagFromNote.mutate({ note, tag_id: tag.id })
+    }
+
+    useEffect(() => {
+        if (!deleteTagFromNote.isError && !deleteTagFromNote.isSuccess) return
+        const timer = setTimeout(() => deleteTagFromNote.reset(), 2500)
+        return () => clearTimeout(timer)
+    }, [deleteTagFromNote.isError, deleteTagFromNote.isSuccess, deleteTagFromNote])
+
+    const pending_status = deleteTagFromNote.isPending ? 'Deleting tag ...'
+      : deleteTagFromNote.isError ? 'Error: unable to delete tag'
+      : deleteTagFromNote.isSuccess ? 'Tag successfully deleted'
+      : '';
+
+    return tags.map(tag => {
+        return (
+            <div >
+            { pending_status != '' &&  <p>{pending_status}</p> }
+        <div >
+            <p>{tag.name}</p>
+            <button onClick={() => deleteTag(tag)}>Delete</button>
+        </div>
+
+            </div>
+    )})
+}
+
+function TagsDataList({ workspace_id, list_id }) {
+    const { data, isError, isSuccess, isPending, error } = useGetTagsForWorkspace(workspace_id)
+
+    let options = []
+    if (isError)
+        options = [(<datalist> <option value="Error loading list!" /> </datalist>)]
+
+    if (isPending)
+        options = [(<datalist> <option value="Loading ..." /> </datalist>)]
+
+    if (isSuccess)
+        options = data.map(tag => <option value={tag.name} />)
+
+    return <datalist id={list_id}>
+           { options }
+      </datalist>
 }
 
 

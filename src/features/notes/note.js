@@ -42,7 +42,7 @@ export function useDeleteNote() {
     })
 }
 
-const QUERY_KEYS = {
+export const QUERY_KEYS = {
     all: ['notes'],
     list: () => [...QUERY_KEYS.all, 'list'],
     details: (note_id) => [...QUERY_KEYS.all, note_id],
