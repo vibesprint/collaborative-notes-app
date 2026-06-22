@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 
-import { useCreateNote, useDeleteNote, useGetNotes, useNote, useUpdateNote } from '../features/notes/note.js'
+import { useCreateNote, useDeleteNote, useGetNotes, useNote, useUpdateNote, QUERY_KEYS as notesQueryKeys } from '../features/notes/note.js'
 import { useGetTagsForNotes, useAddTagToNote, useGetTagsForWorkspace, useDeleteTagFromNote } from '../features/tags/tags.js'
 import { useWorkspaceMember, useCurrentWorkspaceId } from '../features/workspaces/workspace.js'
 
@@ -36,6 +36,18 @@ function NotesList() {
     const { isPending, isError, isSuccess, isLoading, data, error } = useGetNotes()
     const [searchParams, _] = useSearchParams()
 
+    const deleteNote = useDeleteNote(notesQueryKeys.list_root())
+
+    useEffect(() => {
+        if (!deleteNote.isError && !deleteNote.isSuccess) return
+        const timer = setTimeout(() => deleteNote.reset(), 3000)
+        return () => clearTimeout(timer)
+    }, [deleteNote.isSuccess, deleteNote.isError])
+
+    function handleDelete(note_id) {
+        deleteNote.mutate(note_id)
+    }
+
     if (isLoading)
         return <h1>Loading notes</h1>
 
@@ -55,8 +67,11 @@ function NotesList() {
 
     return (
         <>
-        { filteredNotes.length >= 5 && <NotesListTable notes={recentlyEdited} title="Recently Edited" /> }
-        <NotesListTable notes={filteredNotes} />
+        { deleteNote.isPending && <h4>Deleting note ...</h4> }
+        { deleteNote.isError && <h4>Unable to delete note. Errored!</h4> }
+        { deleteNote.isSuccess && <h4 style={{ color: 'green' }}>Note successfully deleted!</h4> }
+        { filteredNotes.length >= 5 && <NotesListTable onDelete={handleDelete} notes={recentlyEdited} title="Recently Edited" /> }
+        <NotesListTable notes={filteredNotes} onDelete={handleDelete} />
         </>
     )
 }
@@ -87,19 +102,15 @@ function NotesSearchForm() {
 
 }
 
-export function NotesListTable({ notes, title }) {
+export function NotesListTable({ notes, title, onDelete }) {
     const notesList = notes;
+    const handleDelete = onDelete
 
     const { isPending: tagsIsPending, isError: tagsIsError, isSuccess: tagsIsSuccess,
         data: tagsList, error: tagsError } = useGetTagsForNotes(notes)
 
 
     const navigate = useNavigate()
-    const deleteNote = useDeleteNote()
-
-    function handleDelete(note_id) {
-        deleteNote.mutate(note_id)
-    }
 
     function handleEdit(note_id) {
         navigate(routes.GET_EDIT_NOTE(note_id))
@@ -121,17 +132,9 @@ export function NotesListTable({ notes, title }) {
     }
 
 
-    useEffect(() => {
-        if (!deleteNote.isError && !deleteNote.isSuccess) return
-        const timer = setTimeout(() => deleteNote.reset(), 3000)
-        return () => clearTimeout(timer)
-    }, [deleteNote.isSuccess, deleteNote.isError])
 
     return (
         <div >
-        { deleteNote.isPending && <h4>Deleting note ...</h4> }
-        { deleteNote.isError && <h4>Unable to delete note. Errored!</h4> }
-        { deleteNote.isSuccess && <h4 style={{ color: 'green' }}>Note successfully deleted!</h4> }
           <h1>{title ?? 'Notes'}</h1>
         { notesList.length > 0 ? <table>
             <thead>
@@ -176,6 +179,8 @@ import '@mdxeditor/editor/style.css'
 const MDXEditorPlugins = [headingsPlugin(), listsPlugin(), quotePlugin(), thematicBreakPlugin()]
 
 export function CreateNote() {
+    const [searchParams, _] = useSearchParams()
+    let folder_id = searchParams.has('folder_id') ? searchParams.get('folder_id') : null
 
     const [title, setTitle] = useState('')
 
@@ -185,7 +190,7 @@ export function CreateNote() {
 
     const handleSubmit = (event) => {
         event.preventDefault()
-        createNote.mutate({title, body: bodyRef.current?.getMarkdown()})
+        createNote.mutate({title, body: bodyRef.current?.getMarkdown(), folder_id})
     }
 
     useEffect(() => {

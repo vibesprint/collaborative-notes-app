@@ -17,3 +17,5 @@ export const FOLDERS_CREATE = '/folders/create'
 export const FOLDERS = '/folders'
 export const FOLDER = '/folder/:id'
 export const GET_FOLDER = (id) => `/folder/${id}`
+export const GET_CREATE_FOLDER_INSIDE = (id) => `${FOLDERS_CREATE}?parent_id=${id}`
+export const GET_CREATE_NOTE_INSIDE = (id) => `${NOTES_CREATE}?folder_id=${id}`

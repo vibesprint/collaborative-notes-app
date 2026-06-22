@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase/client.js'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { QUERY_KEYS as notesQueryKeys } from '../notes/note.js'
 
 
 const QUERY_KEYS = {
@@ -55,8 +56,8 @@ async function listNotesInFolder(folder) {
 
 export function useListNotesInFolder(folder) {
     return useQuery({
-        queryKey: QUERY_KEYS.folder_list(folder.id),
-        queryFn: () => listNoteInFolder(folder)
+        queryKey: notesQueryKeys.list_in_folder(folder.id),
+        queryFn: () => listNotesInFolder(folder)
     })
 }
 

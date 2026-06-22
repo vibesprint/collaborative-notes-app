@@ -5,12 +5,14 @@ import { SearchForm } from '../components/Search.jsx'
 import { useListRootFolders, useCreateFolder, useListFoldersInFolder, useListNotesInFolder, useGetFolder } from '../features/folders/folders.js'
 import { useCurrentWorkspaceId } from '../features/workspaces/workspace.js'
 import { NotesListTable } from './Notes.jsx'
+import { QUERY_KEYS as notesQueryKeys, useDeleteNote } from '../features/notes/note.js'
 import * as Routes from '../routes.jsx'
 
 export function RootFolders() {
     const workspace_id = useCurrentWorkspaceId()
     return (
         <div className="container">
+        <Link to={Routes.FOLDERS_CREATE}>Create a folder</Link>
           <SearchForm />
         <h1>Folders</h1>
         {workspace_id != null ? <RootFoldersList workspace_id={workspace_id} />
@@ -129,7 +131,6 @@ export function ViewFolder() {
     return (
         <div>
         <SearchForm />
-        <h1>Folder List</h1>
         { workspace_id == null ? <h4>Loading ...</h4> : <ViewFolder_Child1 workspace_id={workspace_id} /> }
         </div>
     )
@@ -152,26 +153,66 @@ function ViewFolder_Child1({ workspace_id }) {
 }
 
 function ViewFolder_Child2({ folder }) {
+    const [searchParams, _] = useSearchParams()
+    const search = searchParams.has('q') ? searchParams.get('q') : ''
+
     const { isPending: notesIsPending, isError: notesIsError,
-        isSucess: notesIsSuccess, data: notes, error: notesError } = useListNotesInFolder(folder)
+        isSuccess: notesIsSuccess, data: notes, error: notesError } = useListNotesInFolder(folder)
 
     const { isPending: foldersIsPending, isError: foldersIsError,
-        isSucess: foldersIsSuccess, data: folders, error: foldersError } = useListFoldersInFolder(folder)
+        isSuccess: foldersIsSuccess, data: folders, error: foldersError } = useListFoldersInFolder(folder)
+
+    const deleteNote = useDeleteNote(notesQueryKeys.list_in_folder(folder.id))
+
+    function handleDeleteNote(note_id) {
+        deleteNote.mutate(note_id)
+    }
+
+    useEffect(() => {
+        if (!deleteNote.isError && !deleteNote.isSuccess) return
+        const timer = setTimeout(() => deleteNote.reset(), 3000)
+        return () => clearTimeout(timer)
+    }, [deleteNote.isSuccess, deleteNote.isError])
+
+    let filteredFolders;
+    if(folders != null) {
+        if (search != '')
+            filteredFolders = folders.filter(folder => folder.name.toLowerCase().includes(search.toLowerCase()))
+        else
+            filteredFolders = folders
+    } else {
+        filteredFolders = []
+    }
+
+    let filteredNotes;
+    if(notes != null) {
+        if (search != '')
+            filteredNotes = notes.filter(note => note.title.toLowerCase().includes(search.toLowerCase()))
+        else
+            filteredNotes = notes
+    } else {
+        filteredNotes = []
+    }
 
     return (
         <div>
+        <Link to={Routes.GET_CREATE_FOLDER_INSIDE(folder.id)}>Create a folder</Link>
+        <Link to={Routes.GET_CREATE_NOTE_INSIDE(folder.id)}>Create a note</Link>
         <div>
+        { deleteNote.isPending && <h4>Deleting note ...</h4> }
+        { deleteNote.isError && <h4>Unable to delete note. Errored!</h4> }
+        { deleteNote.isSuccess && <h4 style={{ color: 'green' }}>Note successfully deleted!</h4> }
         {!notesIsSuccess && <h2>Notes list</h2> }
         {notesIsPending && <h4>Loading notes ...</h4>}
         {notesIsError && <h4>Error: unable to load notes</h4>}
-        {notesIsSuccess && (notes.length === 0 ? <p>No notes</p> : <NotesListTable notes={notes} title={'Notes list'} />)}
+        {notesIsSuccess && <NotesListTable onDelete={handleDeleteNote} notes={filteredNotes} title={'Notes list'} />}
         </div>
 
         <div>
         <h2>Folders list</h2>
         {foldersIsPending && <h4>Loading notes ...</h4>}
         {foldersIsError && <h4>Error: unable to load notes</h4>}
-        {foldersIsSuccess && (folders.length === 0 ? <p>No folders</p> : <FolderList list={folders} />)}
+        {foldersIsSuccess && (filteredFolders.length === 0 ? <p>No folders</p> : <FolderList list={filteredFolders} />)}
         </div>
 
         </div>
