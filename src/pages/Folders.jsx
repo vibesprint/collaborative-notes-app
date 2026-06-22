@@ -2,7 +2,7 @@ import { useParams, useSearchParams, Link } from 'react-router'
 import { useState, useEffect } from 'react'
 
 import { SearchForm } from '../components/Search.jsx'
-import { useListRootFolders, useCreateFolder, useListFoldersInFolder, useListNotesInFolder, useGetFolder } from '../features/folders/folders.js'
+import { useListRootFolders, useCreateFolder, useListFoldersInFolder, useListNotesInFolder, useGetFolder, useDeleteFolder } from '../features/folders/folders.js'
 import { useCurrentWorkspaceId } from '../features/workspaces/workspace.js'
 import { NotesListTable } from './Notes.jsx'
 import { QUERY_KEYS as notesQueryKeys, useDeleteNote } from '../features/notes/note.js'
@@ -25,11 +25,22 @@ export function RootFolders() {
 
 function RootFoldersList({ workspace_id }) {
     const { isPending, isSuccess, isError, data, error } = useListRootFolders(workspace_id)
-    const [searchParams, setSearchParams] = useSearchParams()
+    const [searchParams, _] = useSearchParams()
+    const search = searchParams.has('q') ? searchParams.get('q') : '';
 
-    function handleDelete(event) {
+    const deleteFolder = useDeleteFolder()
 
+    function handleDeleteFolder(folder) {
+        deleteFolder.mutate(folder)
     }
+
+    useEffect(() => {
+        if (!deleteFolder.isError && !deleteFolder.isSuccess) return
+        const timer = setTimeout(() => deleteFolder.reset(), 3000)
+        return () => clearTimeout(timer)
+    }, [deleteFolder.isSuccess, deleteFolder.isError])
+
+
 
     let folderList;
     if (isPending)
@@ -46,20 +57,23 @@ function RootFoldersList({ workspace_id }) {
         if (filtered.length === 0)
             folderList = <p>No folder</p>
         else
-            folderList = <FolderList list={filtered} />
+            folderList = <FolderList onDelete={handleDeleteFolder} list={filtered} />
     }
 
     return (
-          folderList
+        <>
+        { deleteFolder.isPending && <h4>Deleting folder ...</h4> }
+        { deleteFolder.isError && <h4>Unable to delete folder. Errored!</h4> }
+        { deleteFolder.isSuccess && <h4 style={{ color: 'green' }}>Folder successfully deleted!</h4> }
+        { folderList }
+        </>
     )
 }
 
-function FolderList({ list }) {
+function FolderList({ list, onDelete }) {
     const filtered = list;
+    const handleDelete = onDelete
 
-    function handleDelete() {
-        console.log('Delete the folder')
-    }
 
     return (
         <table>
@@ -75,7 +89,7 @@ function FolderList({ list }) {
                 return <tr key={folder.id}>
                     <td><Link to={Routes.GET_FOLDER(folder.id)}>{folder.name}</Link></td>
                     <td>
-                      <button onClick={handleDelete}>Delete</button>
+                      <button onClick={() => handleDelete(folder)}>Delete</button>
                     </td>
                 </tr>
             })
@@ -174,6 +188,18 @@ function ViewFolder_Child2({ folder }) {
         return () => clearTimeout(timer)
     }, [deleteNote.isSuccess, deleteNote.isError])
 
+    const deleteFolder = useDeleteFolder()
+
+    function handleDeleteFolder(folder) {
+        deleteFolder.mutate(folder)
+    }
+
+    useEffect(() => {
+        if (!deleteFolder.isError && !deleteFolder.isSuccess) return
+        const timer = setTimeout(() => deleteFolder.reset(), 3000)
+        return () => clearTimeout(timer)
+    }, [deleteFolder.isSuccess, deleteFolder.isError])
+
     let filteredFolders;
     if(folders != null) {
         if (search != '')
@@ -209,10 +235,13 @@ function ViewFolder_Child2({ folder }) {
         </div>
 
         <div>
+        { deleteFolder.isPending && <h4>Deleting folder ...</h4> }
+        { deleteFolder.isError && <h4>Unable to delete folder. Errored!</h4> }
+        { deleteFolder.isSuccess && <h4 style={{ color: 'green' }}>Folder successfully deleted!</h4> }
         <h2>Folders list</h2>
         {foldersIsPending && <h4>Loading notes ...</h4>}
         {foldersIsError && <h4>Error: unable to load notes</h4>}
-        {foldersIsSuccess && (filteredFolders.length === 0 ? <p>No folders</p> : <FolderList list={filteredFolders} />)}
+        {foldersIsSuccess && (filteredFolders.length === 0 ? <p>No folders</p> : <FolderList onDelete={handleDeleteFolder} list={filteredFolders} />)}
         </div>
 
         </div>

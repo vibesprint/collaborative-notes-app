@@ -79,7 +79,13 @@ export function useCreateFolder() {
 
 
 async function deleteFolder(folder) {
-    const { error } = await supabase.from('folders').match({ workspace_id: folder.workspace_id, id: folder.id }).delete()
+    let query = supabase.from('folders').delete().match({ workspace_id: folder.workspace_id, id: folder.id })
+    if (folder.parent_id != null)
+        query = query.eq('parent_id', folder.parent_id)
+    else
+        query = query.is('parent_id', null)
+
+    const { error } = await query;
     if (error != null) throw error;
 }
 
@@ -87,6 +93,10 @@ async function deleteFolder(folder) {
 export function useDeleteFolder() {
     return useMutation({
         mutationFn: deleteFolder,
+        onMutate: (args, context) => {
+            return { parent_id: args.parent_id }
+        },
+
         onSuccess: (data, args, onMutateResult, context) => {
             let queryKey;
             if (args.parent_id == null)
@@ -97,7 +107,8 @@ export function useDeleteFolder() {
             context.client.invalidateQueries({
                 queryKey
             })
-        }
+        },
+
     })
 }
 
