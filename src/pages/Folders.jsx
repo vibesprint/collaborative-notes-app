@@ -2,10 +2,14 @@ import { useParams, useSearchParams, Link } from 'react-router'
 import { useState, useEffect } from 'react'
 
 import { SearchForm } from '../components/Search.jsx'
-import { useListRootFolders, useCreateFolder, useListFoldersInFolder, useListNotesInFolder, useGetFolder, useDeleteFolder } from '../features/folders/folders.js'
+
+import { useListRootFolders, useCreateFolder, useListFoldersInFolder,
+    useListNotesInFolder, useGetFolder, useDeleteFolder,
+     PAGE_SIZE as FOLDERS_PAGE_SIZE } from '../features/folders/folders.js'
+
 import { useCurrentWorkspaceId } from '../features/workspaces/workspace.js'
 import { NotesListTable } from './Notes.jsx'
-import { QUERY_KEYS as notesQueryKeys, useDeleteNote } from '../features/notes/note.js'
+import { QUERY_KEYS as notesQueryKeys, useDeleteNote, PAGE_SIZE as NOTES_PAGE_SIZE } from '../features/notes/note.js'
 import * as Routes from '../routes.jsx'
 
 export function RootFolders() {
@@ -23,8 +27,14 @@ export function RootFolders() {
 
 }
 
+function useGetSearchParam(key, def) {
+    const [searchParams, _] = useSearchParams()
+    return searchParams.has(key) ? searchParams.get(key) : def
+}
+
+
 function RootFoldersList({ workspace_id }) {
-    const { isPending, isSuccess, isError, data, error } = useListRootFolders(workspace_id)
+    const { isPending, isSuccess, isError, data, error } = useListRootFolders(workspace_id, useGetSearchParam('q', ''), useGetSearchParam('page', 1))
     const [searchParams, _] = useSearchParams()
     const search = searchParams.has('q') ? searchParams.get('q') : '';
 
@@ -144,7 +154,6 @@ export function ViewFolder() {
 
     return (
         <div>
-        <SearchForm />
         { workspace_id == null ? <h4>Loading ...</h4> : <ViewFolder_Child1 workspace_id={workspace_id} /> }
         </div>
     )
@@ -167,16 +176,23 @@ function ViewFolder_Child1({ workspace_id }) {
 }
 
 function ViewFolder_Child2({ folder }) {
-    const [searchParams, _] = useSearchParams()
-    const search = searchParams.has('q') ? searchParams.get('q') : ''
+    const [searchParams, setSearchParams] = useSearchParams()
+    const notes_search = searchParams.has('notes_q') ? searchParams.get('notes_q') : ''
+    const folders_search = searchParams.has('folders_q') ? searchParams.get('folders_q') : ''
+
+    const notes_page = searchParams.has('notes_page') ? parseInt(searchParams.get('notes_page'), 10) : 1;
+    const notes_page_no = Number.isNaN(notes_page) ? 1 : notes_page;
+
+    const folders_page = searchParams.has('folders_page') ? parseInt(searchParams.get('folders_page'), 10) : 1;
+    const folders_page_no = Number.isNaN(folders_page) ? 1 : folders_page;
 
     const { isPending: notesIsPending, isError: notesIsError,
-        isSuccess: notesIsSuccess, data: notes, error: notesError } = useListNotesInFolder(folder)
+        isSuccess: notesIsSuccess, data: notes, error: notesError } = useListNotesInFolder(folder, notes_search, notes_page_no)
 
     const { isPending: foldersIsPending, isError: foldersIsError,
-        isSuccess: foldersIsSuccess, data: folders, error: foldersError } = useListFoldersInFolder(folder)
+        isSuccess: foldersIsSuccess, data: folders, error: foldersError } = useListFoldersInFolder(folder, folders_search, folders_page_no)
 
-    const deleteNote = useDeleteNote(notesQueryKeys.list_in_folder(folder.id))
+    const deleteNote = useDeleteNote(notesQueryKeys.list_in_folder_search(folder.id, notes_search, notes_page_no))
 
     function handleDeleteNote(note_id) {
         deleteNote.mutate(note_id)
@@ -200,25 +216,55 @@ function ViewFolder_Child2({ folder }) {
         return () => clearTimeout(timer)
     }, [deleteFolder.isSuccess, deleteFolder.isError])
 
-    let filteredFolders;
-    if(folders != null) {
-        if (search != '')
-            filteredFolders = folders.filter(folder => folder.name.toLowerCase().includes(search.toLowerCase()))
-        else
-            filteredFolders = folders
-    } else {
-        filteredFolders = []
+
+    function canNotesGoForward() {
+        return notes.length >= NOTES_PAGE_SIZE
     }
 
-    let filteredNotes;
-    if(notes != null) {
-        if (search != '')
-            filteredNotes = notes.filter(note => note.title.toLowerCase().includes(search.toLowerCase()))
-        else
-            filteredNotes = notes
-    } else {
-        filteredNotes = []
+    function canNotesGoPrevious() {
+        return notes_page_no > 1;
     }
+
+    function incNotesPageNo() {
+        setSearchParams({
+            ...searchParams,
+            notes_page: notes_page_no + 1
+        })
+    }
+
+    function decNotesPageNo() {
+        if (notes_page_no <= 1) return
+        setSearchParams({
+            ...searchParams,
+            notes_page: notes_page_no - 1
+        })
+    }
+
+    function canFoldersGoForward() {
+        return folders.length >= FOLDERS_PAGE_SIZE
+    }
+
+    function canFoldersGoPrevious() {
+        return folders_page_no > 1;
+    }
+
+    function incFoldersPageNo() {
+        setSearchParams({
+            ...searchParams,
+            folders_page: folders_page_no + 1
+        })
+    }
+
+    function decNotesPageNo() {
+        if (folders_page_no <= 1) return
+        setSearchParams({
+            ...searchParams,
+            folders_page: folders_page_no - 1
+        })
+    }
+
+    const filteredFolders = folders
+    const filteredNotes = notes;
 
     return (
         <div>
@@ -230,8 +276,16 @@ function ViewFolder_Child2({ folder }) {
         { deleteNote.isSuccess && <h4 style={{ color: 'green' }}>Note successfully deleted!</h4> }
         {!notesIsSuccess && <h2>Notes list</h2> }
         {notesIsPending && <h4>Loading notes ...</h4>}
-        {notesIsError && <h4>Error: unable to load notes</h4>}
-        {notesIsSuccess && <NotesListTable onDelete={handleDeleteNote} notes={filteredNotes} title={'Notes list'} />}
+        {notesIsError && <h4>Error: unable to load notes: {notesError.message}</h4>}
+        {notesIsSuccess &&
+                <>
+                <h2>Notes list</h2>
+                <SearchForm paramKey="notes_q" label_text="Search Notes: " />
+                <NotesListTable onDelete={handleDeleteNote} notes={filteredNotes} />
+                <button onClick={() => decNotesPageNo()} disabled={!canNotesGoPrevious()}>Go Previous</button>
+                <button onClick={() => incNotesPageNo()} disabled={!canNotesGoForward()}>Go Forward</button>
+                </>
+        }
         </div>
 
         <div>
@@ -239,9 +293,18 @@ function ViewFolder_Child2({ folder }) {
         { deleteFolder.isError && <h4>Unable to delete folder. Errored!</h4> }
         { deleteFolder.isSuccess && <h4 style={{ color: 'green' }}>Folder successfully deleted!</h4> }
         <h2>Folders list</h2>
-        {foldersIsPending && <h4>Loading notes ...</h4>}
-        {foldersIsError && <h4>Error: unable to load notes</h4>}
-        {foldersIsSuccess && (filteredFolders.length === 0 ? <p>No folders</p> : <FolderList onDelete={handleDeleteFolder} list={filteredFolders} />)}
+        {foldersIsPending && <h4>Loading folders ...</h4>}
+        {foldersIsError && <h4>Error: unable to load folders</h4>}
+        {foldersIsSuccess &&
+                <>
+                <SearchForm paramKey="folders_q" label_text="Search folders by name: " />
+                {(filteredFolders.length === 0 ? <p>No folders</p> :
+            <FolderList onDelete={handleDeleteFolder} list={filteredFolders} />
+        )}
+            <button onClick={() => decFoldersPageNo()} disabled={!canFoldersGoPrevious()}>Go Previous</button>
+            <button onClick={() => incFoldersPageNo()} disabled={!canFoldersGoForward()}>Go Forward</button>
+            </>
+        }
         </div>
 
         </div>

@@ -1,18 +1,20 @@
 import { useSearchParams } from 'react-router'
 import { useState } from 'react'
 
-export function SearchForm({ label_text, button_text }) {
+export function SearchForm({ paramKey, label_text, button_text }) {
+
+    const key = paramKey ?? 'q';
 
     const [searchParams,setSearchParams] = useSearchParams()
-    const [search, setSearch] = useState(searchParams.get('q') ?? '')
+    const [search, setSearch] = useState(searchParams.get(key) ?? '')
 
     function handleSearch(event) {
         event.preventDefault()
 
         if (search === '' || search == null)
-            searchParams.delete('q')
+            searchParams.delete(key)
         else
-            searchParams.set('q', search)
+            searchParams.set(key, search)
 
         setSearchParams(searchParams)
     }

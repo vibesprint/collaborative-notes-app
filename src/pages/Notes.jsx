@@ -6,7 +6,9 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 
-import { useCreateNote, useDeleteNote, useGetNotes, useNote, useUpdateNote, QUERY_KEYS as notesQueryKeys } from '../features/notes/note.js'
+import { useCreateNote, useDeleteNote,
+    useGetNotes, useNote, useUpdateNote,
+    QUERY_KEYS as notesQueryKeys, PAGE_SIZE as NOTES_PAGE_SIZE } from '../features/notes/note.js'
 import { useGetTagsForNotes, useAddTagToNote, useGetTagsForWorkspace, useDeleteTagFromNote } from '../features/tags/tags.js'
 import { useWorkspaceMember, useCurrentWorkspaceId } from '../features/workspaces/workspace.js'
 
@@ -33,10 +35,16 @@ function NotesHeader() {
 }
 
 function NotesList() {
-    const { isPending, isError, isSuccess, isLoading, data, error } = useGetNotes()
-    const [searchParams, _] = useSearchParams()
+    const [lastId, setLastId] = useState(0)
+    const [searchParams, setSearchParams] = useSearchParams()
+    const search = searchParams.has('q') ? searchParams.get('q') : '';
 
-    const deleteNote = useDeleteNote(notesQueryKeys.list_root())
+    const page = searchParams.has('page') ? parseInt(searchParams.get('page'), 10) : 1;
+    const page_no = Number.isNaN(page) ? 1 : page;
+
+    const { isPending, isError, isSuccess, isLoading, data, error } = useGetNotes(search, page_no)
+
+    const deleteNote = useDeleteNote(notesQueryKeys.list_root_all())
 
     useEffect(() => {
         if (!deleteNote.isError && !deleteNote.isSuccess) return
@@ -57,21 +65,49 @@ function NotesList() {
     if(!isSuccess)
         return <h1>Unknown error has occured, consider refreshing the page</h1>
 
-    let filteredNotes = data
-    if (searchParams.has('q')) {
-        const key = searchParams.get('q').toLowerCase()
-        filteredNotes = filteredNotes.filter(note => note.title.toLowerCase().includes(key))
+    const filteredNotes = data;
+    let recentlyEdited = [...filteredNotes].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 3)
+
+    function canGoForward() {
+        return filteredNotes.length >= NOTES_PAGE_SIZE;
     }
 
-    let recentlyEdited = [...filteredNotes].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 3)
+    function canGoPrevious() {
+        return page_no > 1;
+    }
+
+    function decPageNo() {
+        if (page_no <= 1) return;
+
+        setSearchParams({
+            ...searchParams,
+            page: page_no - 1
+        })
+    }
+
+    function incPageNo() {
+        setSearchParams({
+            ...searchParams,
+            page: page_no + 1
+        })
+    }
 
     return (
         <>
         { deleteNote.isPending && <h4>Deleting note ...</h4> }
         { deleteNote.isError && <h4>Unable to delete note. Errored!</h4> }
         { deleteNote.isSuccess && <h4 style={{ color: 'green' }}>Note successfully deleted!</h4> }
-        { filteredNotes.length >= 5 && <NotesListTable onDelete={handleDelete} notes={recentlyEdited} title="Recently Edited" /> }
+        { filteredNotes.length >= 5 && (
+            <>
+            <h1>Recently Edited</h1>
+            <NotesListTable onDelete={handleDelete} notes={recentlyEdited} />
+            </>
+        )}
+
+        <h1> Notes </h1>
         <NotesListTable notes={filteredNotes} onDelete={handleDelete} />
+        <button onClick={() => decPageNo()} disabled={!canGoPrevious()}>Go Previous</button>
+        <button onClick={() => incPageNo()} disabled={!canGoForward()}>Go Forward</button>
         </>
     )
 }
@@ -102,7 +138,7 @@ function NotesSearchForm() {
 
 }
 
-export function NotesListTable({ notes, title, onDelete }) {
+export function NotesListTable({ notes, onDelete }) {
     const notesList = notes;
     const handleDelete = onDelete
 
@@ -135,7 +171,6 @@ export function NotesListTable({ notes, title, onDelete }) {
 
     return (
         <div >
-          <h1>{title ?? 'Notes'}</h1>
         { notesList.length > 0 ? <table>
             <thead>
               <tr>

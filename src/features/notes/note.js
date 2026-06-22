@@ -11,7 +11,7 @@ import { useOptimisticMutation } from '../utils/optimistic.js'
 export function useCreateNote() {
     return useMutation({
         mutationFn: createNote,
-        onSuccess: (data, args, onMutateResult, context) => context.client.invalidateQueries(QUERY_KEYS.list_root()),
+        onSuccess: (data, args, onMutateResult, context) => context.client.invalidateQueries(QUERY_KEYS.list_root_all()),
     })
 }
 
@@ -42,15 +42,26 @@ export function useDeleteNote(queryKey) {
     })
 }
 
+export const PAGE_SIZE = 10;
+
 export const QUERY_KEYS = {
     all: ['notes'],
-    list_root: () => [...QUERY_KEYS.all, 'list', 'root'],
+    list_all: () => [...QUERY_KEYS.all, 'list'],
+    list_root_all: () => [...QUERY_KEYS.all, 'list', 'root'],
+    list_root_search: (search, page_no) => [...QUERY_KEYS.all, 'list',  'root', 'search', search, 'pageno', page_no],
     details: (note_id) => [...QUERY_KEYS.all, note_id],
-    list_in_folder: (folder_id) => [...QUERY_KEYS.all, 'list', 'folder', folder_id]
+    list_in_folder_all: (folder_id) => [...QUERY_KEYS.all, 'list', 'folder', folder_id],
+    list_in_folder_search: (folder_id, search, page_no) => [...QUERY_KEYS.all, 'list', 'folder', folder_id, 'search', search, 'pageno', page_no]
 }
 
-async function fetchNotes() {
-    const { data, error } = await supabase.from('notes').select()
+async function fetchNotes(searchKey, page) {
+    const [start, end] = [(page - 1) * PAGE_SIZE, page * PAGE_SIZE]
+    let query = supabase.from('notes').select()
+    if (searchKey != null && searchKey !== '')
+        query = query.textSearch('title', `'${searchKey}'`)
+    query = query.range(start, end)
+
+    const { data, error } = await query
     if (error != null)
         throw error
 
@@ -58,10 +69,10 @@ async function fetchNotes() {
 }
 
 
-export function useGetNotes() {
+export function useGetNotes(search, page) {
     return useQuery({
-        queryKey: QUERY_KEYS.list_root(),
-        queryFn: fetchNotes
+        queryKey: QUERY_KEYS.list_root_search(search, page),
+        queryFn: () => fetchNotes(search, page)
     })
 }
 
@@ -91,13 +102,6 @@ async function updateNote({note_id, title, body}) {
 }
 
 export function useUpdateNote(note_id) {
-    const optimisticApply = (new_note, old_list) =>  (
-        old_list.map((note) => {
-            if (new_note.id === note.id) return new_note
-            else
-                return note
-        }
-    ))
 
     return useMutation({
         mutationFn: ({ title, body }) => updateNote({ note_id, title, body }),
@@ -106,34 +110,27 @@ export function useUpdateNote(note_id) {
                 queryKey: QUERY_KEYS.details(note_id)
             })
 
-            context.client.cancelQueries({
-                queryKey: QUERY_KEYS.list_root()
-            })
-
             const previous_note = context.client.getQueryData(QUERY_KEYS.details(note_id))
-            const previous_list = context.client.getQueryData(QUERY_KEYS.list_root())
             context.client.setQueryData(QUERY_KEYS.details(note_id), (old) => ({...old, ...args}))
-            context.client.setQueryData(QUERY_KEYS.list_root(), (old_list) => {
-                return old_list.map((note) => {
-                    if (note.id === note_id)
-                        return args
-                    return note
-                })
-            })
 
-            return { previous_note, previous_list }
+            return { previous_note }
         },
 
         onSettled: (data, error, args, onMutateResult, context) => {
             if (context.client.isMutating() === 1) {
-                context.client.invalidateQueries(QUERY_KEYS.details(note_id))
-                context.client.invalidateQueries(QUERY_KEYS.list_root())
+
+                context.client.invalidateQueries({
+                    queryKey: QUERY_KEYS.details(note_id),
+                })
+
+                context.client.invalidateQueries({
+                    queryKey: QUERY_KEYS.list_root_all(),
+                })
             }
         },
 
         onError: (error, args, onMutateResult, context) => {
             context.client.setQueryData(QUERY_KEYS.details(note_id), onMutateResult.previous_note)
-            context.client.setQueryData(QUERY_KEYS.list_root(), onMutateResult.previous_list)
         }
     })
 }
