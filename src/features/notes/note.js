@@ -60,7 +60,7 @@ export const QUERY_KEYS = {
     list_in_folder_search: (wspc_id, folder_id, search, page_no) => [...QUERY_KEYS.all, wspc_id, 'list', 'folder', folder_id, 'search', search, 'pageno', page_no]
 }
 
-async function fetchNotes(workspace_id, searchKey, page) {
+async function fetchNotes(workspace_id, folder_id, searchKey, page) {
     const [start, end] = [(page - 1) * PAGE_SIZE, page * PAGE_SIZE]
     let query = supabase.from('notes').select().eq('workspace_id', workspace_id)
     if (searchKey != null && searchKey !== '')
@@ -75,10 +75,10 @@ async function fetchNotes(workspace_id, searchKey, page) {
 }
 
 
-export function useGetNotes(workspace_id, search, page) {
+export function useGetNotes(workspace_id, folder_id, search, page) {
     return useQuery({
         queryKey: QUERY_KEYS.list_root_search(workspace_id, search, page),
-        queryFn: () => fetchNotes(workspace_id, search, page)
+        queryFn: () => fetchNotes(workspace_id, folder_id, search, page)
     })
 }
 

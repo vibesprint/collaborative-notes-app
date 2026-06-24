@@ -11,39 +11,18 @@ import { useCreateNote, useDeleteNote,
     QUERY_KEYS as notesQueryKeys, PAGE_SIZE as NOTES_PAGE_SIZE } from '../features/notes/note.js'
 import { useGetTagsForNotes, useAddTagToNote, useGetTagsForWorkspace, useDeleteTagFromNote } from '../features/tags/tags.js'
 import { useWorkspaceMember, useCurrentWorkspaceId } from '../features/workspaces/workspace.js'
+import { SearchForm } from '../components/Search.jsx'
 
 
-export function Notes() {
-    return (
-        <div className={styles.main} >
-          <div className="container" >
-            <NotesHeader />
-            <NotesSearchForm />
-            <NotesList />
-          </div>
-        </div>
-    )
-}
-
-
-function NotesHeader() {
-    return (
-        <div className={styles.header} >
-          <Link to={routes.NOTES_CREATE}>Create a note</Link>
-        </div>
-    )
-}
-
-function NotesList() {
+export function NotesList({ workspace_id, folder_id }) {
     const [lastId, setLastId] = useState(0)
     const [searchParams, setSearchParams] = useSearchParams()
-    const search = searchParams.has('q') ? searchParams.get('q') : '';
-    const workspace_id = useCurrentWorkspaceId()
+    const search = searchParams.has('notes_q') ? searchParams.get('notes_q') : '';
 
-    const page = searchParams.has('page') ? parseInt(searchParams.get('page'), 10) : 1;
+    const page = searchParams.has('notes_page') ? parseInt(searchParams.get('notes_page'), 10) : 1;
     const page_no = Number.isNaN(page) ? 1 : page;
 
-    const { isPending, isError, isSuccess, isLoading, data, error } = useGetNotes(workspace_id, search, page_no)
+    const { isPending, isError, isSuccess, isLoading, data, error } = useGetNotes(workspace_id, folder_id, search, page_no)
 
     const deleteNote = useDeleteNote(notesQueryKeys.list_root_all(workspace_id))
 
@@ -82,14 +61,14 @@ function NotesList() {
 
         setSearchParams({
             ...searchParams,
-            page: page_no - 1
+            notes_page: page_no - 1
         })
     }
 
     function incPageNo() {
         setSearchParams({
             ...searchParams,
-            page: page_no + 1
+            notes_page: page_no + 1
         })
     }
 
@@ -106,6 +85,7 @@ function NotesList() {
         )}
 
         <h1> Notes </h1>
+        <SearchForm paramKey="notes_q" label_text="Search Notes: " />
         <NotesListTable notes={filteredNotes} onDelete={handleDelete} />
         <button onClick={() => decPageNo()} disabled={!canGoPrevious()}>Go Previous</button>
         <button onClick={() => incPageNo()} disabled={!canGoForward()}>Go Forward</button>
@@ -113,31 +93,6 @@ function NotesList() {
     )
 }
 
-function NotesSearchForm() {
-
-    const [searchParams,setSearchParams] = useSearchParams()
-    const [search, setSearch] = useState(searchParams.get('q') ?? '')
-
-    function handleSearch(event) {
-        event.preventDefault()
-
-        if (search === '' || search == null)
-            searchParams.delete('q')
-        else
-            searchParams.set('q', search)
-
-        setSearchParams(searchParams)
-    }
-
-    return (
-        <form onSubmit={handleSearch} >
-         <label htmlFor="search_input" >Search: </label>
-         <input type='textbox' id="search_input" name="search" onChange={(event) => setSearch(event.target.value)} value={search} />
-        <button type="submit">Search</button>
-        </form>
-    )
-
-}
 
 export function NotesListTable({ notes, onDelete }) {
     const notesList = notes;

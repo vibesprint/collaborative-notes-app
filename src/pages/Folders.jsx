@@ -3,29 +3,15 @@ import { useState, useEffect } from 'react'
 
 import { SearchForm } from '../components/Search.jsx'
 
-import { useListRootFolders, useCreateFolder, useListFoldersInFolder,
-    useListNotesInFolder, useGetFolder, useDeleteFolder,
+import {useCreateFolder, useGetFolder, useDeleteFolder, useGetFolders,
      PAGE_SIZE as FOLDERS_PAGE_SIZE } from '../features/folders/folders.js'
+import { useGetNotes } from '../features/notes/note.js'
 
 import { useCurrentWorkspaceId } from '../features/workspaces/workspace.js'
-import { NotesListTable } from './Notes.jsx'
+import { NotesList } from './Notes.jsx'
 import { QUERY_KEYS as notesQueryKeys, useDeleteNote, PAGE_SIZE as NOTES_PAGE_SIZE } from '../features/notes/note.js'
 import * as Routes from '../routes.jsx'
 
-export function RootFolders() {
-    const workspace_id = useCurrentWorkspaceId()
-    return (
-        <div className="container">
-        <Link to={Routes.FOLDERS_CREATE}>Create a folder</Link>
-          <SearchForm />
-        <h1>Folders</h1>
-        {workspace_id != null ? <RootFoldersList workspace_id={workspace_id} />
-            : <h2>Loading workspace ...</h2>
-        }
-        </div>
-    )
-
-}
 
 function useGetSearchParam(key, def) {
     const [searchParams, _] = useSearchParams()
@@ -33,52 +19,6 @@ function useGetSearchParam(key, def) {
 }
 
 
-function RootFoldersList({ workspace_id }) {
-    const { isPending, isSuccess, isError, data, error } = useListRootFolders(workspace_id, useGetSearchParam('q', ''), useGetSearchParam('page', 1))
-    const [searchParams, _] = useSearchParams()
-    const search = searchParams.has('q') ? searchParams.get('q') : '';
-
-    const deleteFolder = useDeleteFolder()
-
-    function handleDeleteFolder(folder) {
-        deleteFolder.mutate(folder)
-    }
-
-    useEffect(() => {
-        if (!deleteFolder.isError && !deleteFolder.isSuccess) return
-        const timer = setTimeout(() => deleteFolder.reset(), 3000)
-        return () => clearTimeout(timer)
-    }, [deleteFolder.isSuccess, deleteFolder.isError])
-
-
-
-    let folderList;
-    if (isPending)
-        folderList = <h2>Loading ...</h2>
-    else if (isError)
-        folderList = <h4>Encountered error, consider retrying</h4>
-    else {
-        let filtered;
-        if (searchParams.has('q'))
-            filtered = data.filter(folder => folder.name.toLowerCase().includes(searchParams.get('q')))
-        else
-            filtered = data
-
-        if (filtered.length === 0)
-            folderList = <p>No folder</p>
-        else
-            folderList = <FolderList onDelete={handleDeleteFolder} list={filtered} />
-    }
-
-    return (
-        <>
-        { deleteFolder.isPending && <h4>Deleting folder ...</h4> }
-        { deleteFolder.isError && <h4>Unable to delete folder. Errored!</h4> }
-        { deleteFolder.isSuccess && <h4 style={{ color: 'green' }}>Folder successfully deleted!</h4> }
-        { folderList }
-        </>
-    )
-}
 
 function FolderList({ list, onDelete }) {
     const filtered = list;
@@ -160,22 +100,18 @@ export function ViewFolder() {
 }
 
 function ViewFolder_Child1({ workspace_id }) {
-    const id = useParams().id
-    const {isPending, isError, isSuccess, data: folder, error} = useGetFolder(workspace_id, id)
+    let folder_id = useParams().id
+    if (folder_id === 'root')
+        folder_id = null
 
 
-    if (id == null)
+    if (folder_id === undefined)
         return <p>Error: no folder id to show</p>
 
-    if (isPending)
-        return <h4>Loading folder metadata ...</h4>
-    if (isError)
-        return <h4>Error: unable to load folder metadata</h4>
-
-    return <ViewFolder_Child2 folder={folder} />
+    return <ViewFolder_Child2 workspace_id={workspace_id} folder_id={folder_id} />
 }
 
-function ViewFolder_Child2({ folder }) {
+function ViewFolder_Child2({ workspace_id, folder_id }) {
     const [searchParams, setSearchParams] = useSearchParams()
     const notes_search = searchParams.has('notes_q') ? searchParams.get('notes_q') : ''
     const folders_search = searchParams.has('folders_q') ? searchParams.get('folders_q') : ''
@@ -186,23 +122,8 @@ function ViewFolder_Child2({ folder }) {
     const folders_page = searchParams.has('folders_page') ? parseInt(searchParams.get('folders_page'), 10) : 1;
     const folders_page_no = Number.isNaN(folders_page) ? 1 : folders_page;
 
-    const { isPending: notesIsPending, isError: notesIsError,
-        isSuccess: notesIsSuccess, data: notes, error: notesError } = useListNotesInFolder(folder, notes_search, notes_page_no)
-
     const { isPending: foldersIsPending, isError: foldersIsError,
-        isSuccess: foldersIsSuccess, data: folders, error: foldersError } = useListFoldersInFolder(folder, folders_search, folders_page_no)
-
-    const deleteNote = useDeleteNote(notesQueryKeys.list_in_folder_search(folder.id, notes_search, notes_page_no))
-
-    function handleDeleteNote(note_id) {
-        deleteNote.mutate(note_id)
-    }
-
-    useEffect(() => {
-        if (!deleteNote.isError && !deleteNote.isSuccess) return
-        const timer = setTimeout(() => deleteNote.reset(), 3000)
-        return () => clearTimeout(timer)
-    }, [deleteNote.isSuccess, deleteNote.isError])
+        isSuccess: foldersIsSuccess, data: folders, error: foldersError } = useGetFolders(workspace_id, folder_id, folders_search, folders_page_no)
 
     const deleteFolder = useDeleteFolder()
 
@@ -217,28 +138,6 @@ function ViewFolder_Child2({ folder }) {
     }, [deleteFolder.isSuccess, deleteFolder.isError])
 
 
-    function canNotesGoForward() {
-        return notes.length >= NOTES_PAGE_SIZE
-    }
-
-    function canNotesGoPrevious() {
-        return notes_page_no > 1;
-    }
-
-    function incNotesPageNo() {
-        setSearchParams({
-            ...searchParams,
-            notes_page: notes_page_no + 1
-        })
-    }
-
-    function decNotesPageNo() {
-        if (notes_page_no <= 1) return
-        setSearchParams({
-            ...searchParams,
-            notes_page: notes_page_no - 1
-        })
-    }
 
     function canFoldersGoForward() {
         return folders.length >= FOLDERS_PAGE_SIZE
@@ -255,37 +154,14 @@ function ViewFolder_Child2({ folder }) {
         })
     }
 
-    function decNotesPageNo() {
-        if (folders_page_no <= 1) return
-        setSearchParams({
-            ...searchParams,
-            folders_page: folders_page_no - 1
-        })
-    }
-
     const filteredFolders = folders
-    const filteredNotes = notes;
 
     return (
         <div>
-        <Link to={Routes.GET_CREATE_FOLDER_INSIDE(folder.id)}>Create a folder</Link>
-        <Link to={Routes.GET_CREATE_NOTE_INSIDE(folder.id)}>Create a note</Link>
+        <Link to={Routes.GET_CREATE_FOLDER_INSIDE(folder_id)}>Create a folder</Link>
+        <Link to={Routes.GET_CREATE_NOTE_INSIDE(folder_id)}>Create a note</Link>
         <div>
-        { deleteNote.isPending && <h4>Deleting note ...</h4> }
-        { deleteNote.isError && <h4>Unable to delete note. Errored!</h4> }
-        { deleteNote.isSuccess && <h4 style={{ color: 'green' }}>Note successfully deleted!</h4> }
-        {!notesIsSuccess && <h2>Notes list</h2> }
-        {notesIsPending && <h4>Loading notes ...</h4>}
-        {notesIsError && <h4>Error: unable to load notes: {notesError.message}</h4>}
-        {notesIsSuccess &&
-                <>
-                <h2>Notes list</h2>
-                <SearchForm paramKey="notes_q" label_text="Search Notes: " />
-                <NotesListTable onDelete={handleDeleteNote} notes={filteredNotes} />
-                <button onClick={() => decNotesPageNo()} disabled={!canNotesGoPrevious()}>Go Previous</button>
-                <button onClick={() => incNotesPageNo()} disabled={!canNotesGoForward()}>Go Forward</button>
-                </>
-        }
+        <NotesList workspace_id={workspace_id} folder_id={folder_id} />
         </div>
 
         <div>

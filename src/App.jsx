@@ -9,10 +9,9 @@ import { SignUpPage } from './pages/SignUpPage.jsx'
 import { ProtectedRoute } from './ProtectedRoute.jsx'
 import { HomePage, HomePageNotLoggedIn } from './pages/HomePage.jsx'
 import { Workspaces, CreateWorkspace } from './pages/Workspaces.jsx'
-import { Notes, CreateNote, EditNote, Note } from './pages/Notes.jsx'
-import { RootFolders, ViewFolder, CreateFolder } from './pages/Folders.jsx'
+import { CreateNote, EditNote, Note } from './pages/Notes.jsx'
+import { ViewFolder, CreateFolder } from './pages/Folders.jsx'
 import { FoldersShell } from './pages/FoldersShell.jsx'
-import { LoggedIn } from './components/LoggedIn.jsx'
 import { useCurrentWorkspaceSync } from './features/workspaces/workspace.js'
 
 import { useInitAuth } from './features/auth/auth.jsx'
@@ -27,7 +26,6 @@ export function App() {
     return (
         <Routes>
           <Route element={<AppShell />}>
-           <Route element={<LoggedIn />}>
             <Route index element={
                 <ProtectedRoute ifNotLoggedIn={<HomePageNotLoggedIn />}>
                   <HomePage />
@@ -49,12 +47,6 @@ export function App() {
         <Route path={routes.WORKSPACES_CREATE} element={
             <ProtectedRoute>
               <CreateWorkspace />
-            </ProtectedRoute>
-        } />
-
-        <Route path={routes.NOTES} element={
-            <ProtectedRoute>
-              <Notes />
             </ProtectedRoute>
         } />
 
@@ -82,10 +74,6 @@ export function App() {
             </ProtectedRoute>
         }>
 
-            <Route path={routes.FOLDERS} element={
-                  <RootFolders />
-            } />
-
             <Route path={routes.FOLDERS_CREATE} element={
                   <CreateFolder />
             } />
@@ -101,7 +89,6 @@ export function App() {
                 </ProtectedRoute>
             } />
 
-        </Route>
 
             <Route path="/login" element={<LoginPage />}/>
             <Route path="/logout" element={<LogoutPage />}/>
