@@ -7,7 +7,7 @@ import {useCreateFolder, useGetFolder, useDeleteFolder, useGetFolders,
      PAGE_SIZE as FOLDERS_PAGE_SIZE } from '../features/folders/folders.js'
 import { useGetNotes } from '../features/notes/note.js'
 
-import { useCurrentWorkspaceId } from '../features/workspaces/workspace.js'
+import { useCurrentWorkspace } from '../features/workspaces/workspace.js'
 import { NotesList } from './Notes.jsx'
 import { QUERY_KEYS as notesQueryKeys, useDeleteNote, PAGE_SIZE as NOTES_PAGE_SIZE } from '../features/notes/note.js'
 import * as Routes from '../routes.jsx'
@@ -90,11 +90,14 @@ export function CreateFolder() {
 }
 
 export function ViewFolder() {
-    const workspace_id = useCurrentWorkspaceId()
+    const { isPending, isError, error, data } = useCurrentWorkspace()
 
     return (
         <div>
-        { workspace_id == null ? <h4>Loading ...</h4> : <ViewFolder_Child1 workspace_id={workspace_id} /> }
+        { isPending ? <h4>Loading ...</h4>
+            : isError ? <h4>Error: unable to workspace</h4>
+            : data == null ? <h4>No workspace</h4>
+            : <ViewFolder_Child1 workspace_id={ data.id } />}
         </div>
     )
 }
