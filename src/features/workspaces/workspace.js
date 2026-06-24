@@ -19,10 +19,10 @@ export const QUERY_KEYS = {
     member: (wsId, userId) => [...QUERY_KEYS.scoped(wsId), 'member', userId]
 }
 
-export const useWorkspaceStore = zustandCreate((set) =>({
+export const useWorkspaceStore = zustandCreate(persist((set) =>({
     selectedId: null,
     setSelectedId: (newId) => { set({ selectedId: newId }) }
-}))
+}), { name: 'current_workspace' }))
 
 export function useCurrentWorkspace() {
     const { isPending, isError, error, data } = useWorkspaceList()
@@ -39,6 +39,7 @@ export function useCurrentWorkspaceSync() {
     const { isPending, isError, data } = useCurrentWorkspace()
     const selectedId = useWorkspaceStore(state => state.selectedId)
     const setSelectedId = useWorkspaceStore(state => state.setSelectedId)
+    const workspaceListQuery = useWorkspaceListQuery()
 
     useEffect(() => {
         if (!isPending && !isError && data != null && selectedId != data.id)
@@ -79,13 +80,17 @@ export async function getAllWorkspaces() {
 }
 
 
-export const workspaceListQuery = {
-    queryKey: QUERY_KEYS.list(),
-    queryFn: getAllWorkspaces,
+function useWorkspaceListQuery() {
+    const loggedIn = useAuth(state => !!state.session)
+    return {
+        queryKey: QUERY_KEYS.list(),
+        queryFn: getAllWorkspaces,
+        enabled: loggedIn
+    }
 }
 
 export function useWorkspaceList() {
-    return useQuery(workspaceListQuery)
+    return useQuery(useWorkspaceListQuery())
 }
 
 
