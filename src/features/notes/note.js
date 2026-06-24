@@ -10,7 +10,7 @@ import { useOptimisticMutation } from '../utils/optimistic.js'
 export function useCreateNote() {
     return useMutation({
         mutationFn: createNote,
-        onSuccess: (data, args, onMutateResult, context) => context.client.invalidateQueries(QUERY_KEYS.list_root_all()),
+        onSuccess: (data, args, onMutateResult, context) => context.client.invalidateQueries(QUERY_KEYS.list_root_all(data.workspace_id)),
     })
 }
 
@@ -19,27 +19,32 @@ async function createNote({title, body, folder_id, workspace_id}) {
     const user_id = useAuth.getState().session?.user?.id
     if (workspace_id == null) throw new Error('no workspace found')
 
-    const { error } = await supabase.from('notes').insert({ title, body, folder_id, user_id, workspace_id })
+    const { data, error } = await supabase.from('notes').insert({ title, body, folder_id, user_id, workspace_id }).select()
     if (error != null)
         throw error
+
+    console.log('data from createNote', data)
+    return data[0]
 }
 
 
-async function deleteNote(note_id) {
+async function deleteNote(note) {
 
-    const workspace_id = await useCurrentWorkspaceId()
-    if (workspace_id == null) throw new Error('no workspace found')
-
-    const { error } = await supabase.from('notes').delete().eq('id', note_id).eq('workspace_id', workspace_id)
+    const { error } = await supabase.from('notes').delete().eq('id', note.id)
     if (error != null)
         throw error
 }
 
 export function useDeleteNote(queryKey) {
-    return useOptimisticMutation({
+    return useMutation({
         mutationFn: deleteNote,
-        queryKey,
-        optimisticApply: (new_note_id, old_list) => old_list.filter((note) => note.id !== new_note_id)
+        onSettled: (data, error, args, onMutateResult, context) => {
+            if (error != null)
+                console.log('error in delete note', error)
+            context.client.invalidateQueries({
+                queryKey
+            })
+        }
     })
 }
 
@@ -47,17 +52,17 @@ export const PAGE_SIZE = 10;
 
 export const QUERY_KEYS = {
     all: ['notes'],
-    list_all: () => [...QUERY_KEYS.all, 'list'],
-    list_root_all: () => [...QUERY_KEYS.all, 'list', 'root'],
-    list_root_search: (search, page_no) => [...QUERY_KEYS.all, 'list',  'root', 'search', search, 'pageno', page_no],
+    list_all: (wspc_id) => [...QUERY_KEYS.all, wspc_id, 'list'],
+    list_root_all: (wspc_id) => [...QUERY_KEYS.all, wspc_id, 'list', 'root'],
+    list_root_search: (wspc_id, search, page_no) => [...QUERY_KEYS.all, wspc_id, 'list',  'root', 'search', search, 'pageno', page_no],
     details: (note_id) => [...QUERY_KEYS.all, note_id],
-    list_in_folder_all: (folder_id) => [...QUERY_KEYS.all, 'list', 'folder', folder_id],
-    list_in_folder_search: (folder_id, search, page_no) => [...QUERY_KEYS.all, 'list', 'folder', folder_id, 'search', search, 'pageno', page_no]
+    list_in_folder_all: (wspc_id, folder_id) => [...QUERY_KEYS.all, wspc_id, 'list', 'folder', folder_id],
+    list_in_folder_search: (wspc_id, folder_id, search, page_no) => [...QUERY_KEYS.all, wspc_id, 'list', 'folder', folder_id, 'search', search, 'pageno', page_no]
 }
 
-async function fetchNotes(searchKey, page) {
+async function fetchNotes(workspace_id, searchKey, page) {
     const [start, end] = [(page - 1) * PAGE_SIZE, page * PAGE_SIZE]
-    let query = supabase.from('notes').select()
+    let query = supabase.from('notes').select().eq('workspace_id', workspace_id)
     if (searchKey != null && searchKey !== '')
         query = query.textSearch('title', `'${searchKey}'`)
     query = query.range(start, end)
@@ -70,10 +75,10 @@ async function fetchNotes(searchKey, page) {
 }
 
 
-export function useGetNotes(search, page) {
+export function useGetNotes(workspace_id, search, page) {
     return useQuery({
-        queryKey: QUERY_KEYS.list_root_search(search, page),
-        queryFn: () => fetchNotes(search, page)
+        queryKey: QUERY_KEYS.list_root_search(workspace_id, search, page),
+        queryFn: () => fetchNotes(workspace_id, search, page)
     })
 }
 
@@ -102,8 +107,9 @@ async function updateNote({note_id, title, body}) {
         throw error
 }
 
-export function useUpdateNote(note_id) {
+export function useUpdateNote(note) {
 
+    const note_id = note.id
     return useMutation({
         mutationFn: ({ title, body }) => updateNote({ note_id, title, body }),
         onMutate: (args, context) => {
@@ -125,7 +131,7 @@ export function useUpdateNote(note_id) {
                 })
 
                 context.client.invalidateQueries({
-                    queryKey: QUERY_KEYS.list_root_all(),
+                    queryKey: QUERY_KEYS.list_root_all(note.workspace_id),
                 })
             }
         },

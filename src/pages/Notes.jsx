@@ -38,13 +38,14 @@ function NotesList() {
     const [lastId, setLastId] = useState(0)
     const [searchParams, setSearchParams] = useSearchParams()
     const search = searchParams.has('q') ? searchParams.get('q') : '';
+    const workspace_id = useCurrentWorkspaceId()
 
     const page = searchParams.has('page') ? parseInt(searchParams.get('page'), 10) : 1;
     const page_no = Number.isNaN(page) ? 1 : page;
 
-    const { isPending, isError, isSuccess, isLoading, data, error } = useGetNotes(search, page_no)
+    const { isPending, isError, isSuccess, isLoading, data, error } = useGetNotes(workspace_id, search, page_no)
 
-    const deleteNote = useDeleteNote(notesQueryKeys.list_root_all())
+    const deleteNote = useDeleteNote(notesQueryKeys.list_root_all(workspace_id))
 
     useEffect(() => {
         if (!deleteNote.isError && !deleteNote.isSuccess) return
@@ -52,8 +53,8 @@ function NotesList() {
         return () => clearTimeout(timer)
     }, [deleteNote.isSuccess, deleteNote.isError])
 
-    function handleDelete(note_id) {
-        deleteNote.mutate(note_id)
+    function handleDelete(note) {
+        deleteNote.mutate(note)
     }
 
     if (isLoading)
@@ -189,7 +190,7 @@ export function NotesListTable({ notes, onDelete }) {
                   </td>
 
                   <td>
-                   <button onClick={() => handleDelete(elem.id)}>Delete Note</button>
+                   <button onClick={() => handleDelete(elem)}>Delete Note</button>
                    <button onClick={() => handleEdit(elem.id)}>Edit Note</button>
                   </td>
                   <td>
@@ -288,7 +289,7 @@ function EditNoteForm({ note }) {
 
     const [dirty, setDirty] = useState(false)
 
-    const updateNote = useUpdateNote(note.id)
+    const updateNote = useUpdateNote(note)
 
     const debounceSave = useMemo(() => debounce(updateNote.mutate, 1000), [])
 
