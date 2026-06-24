@@ -20,7 +20,7 @@ export function RootFolders() {
           <SearchForm />
         <h1>Folders</h1>
         {workspace_id != null ? <RootFoldersList workspace_id={workspace_id} />
-            : <h2>Loading ...</h2>
+            : <h2>Loading workspace ...</h2>
         }
         </div>
     )

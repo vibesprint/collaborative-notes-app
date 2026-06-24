@@ -3,7 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase/client.js'
 import { queryClient } from '../../queryClient.js'
 import { useAuth } from '../auth/auth.jsx'
-import { getCurrentWorkspaceId } from '../workspaces/workspace.js'
+import { useCurrentWorkspaceId } from '../workspaces/workspace.js'
 import { useOptimisticMutation } from '../utils/optimistic.js'
 
 
@@ -18,7 +18,8 @@ export function useCreateNote() {
 
 async function createNote({title, body, folder_id}) {
     const user_id = useAuth.getState().session?.user?.id
-    const workspace_id = getCurrentWorkspaceId()
+    const workspace_id = useCurrentWorkspaceId()
+    if (workspace_id == null) throw new Error('no workspace found')
 
     const { error } = await supabase.from('notes').insert({ title, body, folder_id, user_id, workspace_id })
     if (error != null)
@@ -28,7 +29,9 @@ async function createNote({title, body, folder_id}) {
 
 async function deleteNote(note_id) {
 
-    const workspace_id = await getCurrentWorkspaceId()
+    const workspace_id = await useCurrentWorkspaceId()
+    if (workspace_id == null) throw new Error('no workspace found')
+
     const { error } = await supabase.from('notes').delete().eq('id', note_id).eq('workspace_id', workspace_id)
     if (error != null)
         throw error

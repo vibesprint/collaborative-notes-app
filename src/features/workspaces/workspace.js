@@ -7,6 +7,7 @@ import { create as zustandCreate } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 import { useOptimisticMutation } from '../utils/optimistic.js'
+import { useAuth } from '../auth/auth.jsx'
 
 
 
@@ -18,51 +19,52 @@ export const QUERY_KEYS = {
     member: (wsId, userId) => [...QUERY_KEYS.scoped(wsId), 'member', userId]
 }
 
-const useWorkspaceStore = zustandCreate((set) =>({
-    currentWorkspaceId: null,
-    currentWorkspaceName: null,
-    setCurrentWorkspaceId: (wsid) => {
-        set({ currentWorkspaceId: wsid })
-    },
-    setCurrentWorkspaceName: (name) => {
-        set({ currentWorkspaceName: name })
-    },
-
-    setCurrentWorkspace: (wsid, name) => {
-        set({ currentWorkspaceName: name, currentWorkspaceId: wsid })
-    }
+export const useWorkspaceStore = zustandCreate((set) =>({
+    selectedId: null,
+    setSelectedId: (newId) => { set({ selectedId: newId }) }
 }))
 
+export function useCurrentWorkspace() {
+    const { isPending, isError, error, data } = useWorkspaceList()
+    const selectedId = useWorkspaceStore(state => state.selectedId)
+
+    let curWs = null
+    if (!data?.length) curWs = null;
+    else curWs = data.find(w => w.id === selectedId) ?? data[0]
+
+    return { isPending, isError, error, data: curWs }
+}
+
+export function useCurrentWorkspaceSync() {
+    const { isPending, isError, data } = useCurrentWorkspace()
+    const selectedId = useWorkspaceStore(state => state.selectedId)
+    const setSelectedId = useWorkspaceStore(state => state.setSelectedId)
+
+    useEffect(() => {
+        if (!isPending && !isError && data != null && selectedId != data.id)
+            setSelectedId(data.id)
+        if (!isPending && !isError && data == null)
+            setSelectedId(null)
+
+        const { data: { subscription: { unsubscribe } } } = supabase.auth.onAuthStateChange((event, session) => {
+
+            if (event === 'SIGNED_IN')
+                setTimeout(() => queryClient.prefetchQuery(workspaceListQuery), 0)
+        })
+
+        return unsubscribe
+
+    }, [selectedId, data])
+}
 
 export function useCurrentWorkspaceId() {
-    return useWorkspaceStore(state => state.currentWorkspaceId)
-}
-
-export function getCurrentWorkspaceId() {
-    return useWorkspaceStore.getState().currentWorkspaceId
-}
-
-export function getCurrentWorkspaceName() {
-    return useWorkspaceStore.getState().currentWorkspaceName
+    return useCurrentWorkspace()?.data?.id
 }
 
 
 export function useCurrentWorkspaceName() {
-    return useWorkspaceStore(state => state.currentWorkspaceName)
+    return useCurrentWorkspace()?.data?.name
 }
-
-export function useSetCurrentWorkspaceId() {
-    return useWorkspaceStore(state => state.setCurrentWorkspaceId)
-}
-
-export function useSetCurrentWorkspaceName() {
-    return useWorkspaceStore(state => state.setCurrentWorkspaceName)
-}
-
-export function useSetCurrentWorkspace() {
-    return useWorkspaceStore(state => state.setCurrentWorkspace)
-}
-
 
 export async function getAllWorkspaces() {
     const { data, error } = await supabase.from('workspaces').select()
@@ -73,11 +75,13 @@ export async function getAllWorkspaces() {
 }
 
 
+export const workspaceListQuery = {
+    queryKey: QUERY_KEYS.list(),
+    queryFn: getAllWorkspaces,
+}
+
 export function useWorkspaceList() {
-    return useQuery({
-        queryKey: QUERY_KEYS.list(),
-        queryFn: getAllWorkspaces
-    })
+    return useQuery(workspaceListQuery)
 }
 
 
@@ -116,22 +120,6 @@ export function useCreateWorkspace() {
     })
 }
 
-
-export function useInitializeWorkspace() {
-    const currentWorkspaceId = useCurrentWorkspaceId()
-    const setCurrentWorkspaceId = useSetCurrentWorkspaceId()
-    const setCurrentWorkspace = useSetCurrentWorkspace()
-
-    const { isError, isSuccess, isPending, data } = useWorkspaceList()
-
-    useEffect(() => {
-        if (!isSuccess || !data) return
-        const isValid = currentWorkspaceId && data.some((w) => w.id === currentWorkspaceId)
-        if (!isValid){
-            setCurrentWorkspace(data[0]?.id ?? null, data[0]?.name ?? null)
-        }
-    }, [isSuccess, data, currentWorkspaceId, setCurrentWorkspaceId])
-}
 
 
 async function getMember(cur_user_id) {

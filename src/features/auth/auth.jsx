@@ -2,6 +2,7 @@ import { create } from 'zustand'
 
 import { loginWithEmail, logout as supabaseLogout, signUpWithEmail } from '../../lib/supabase/auth.js'
 import { supabase } from '../../lib/supabase/client.js'
+import { useEffect } from 'react'
 
 export const useAuth = create((set) => ({
     session: null,
@@ -24,10 +25,16 @@ export const useAuth = create((set) => ({
 }))
 
 
-supabase.auth.onAuthStateChange((_event, session) => {
-    useAuth.setState({
-        session: session,
-        loading: false,
-        user: session?.user ?? null
-    })
-})
+export function useInitAuth() {
+    useEffect(() => {
+            const { data : { subscription: { unsubscribe } } } = supabase.auth.onAuthStateChange((event, session) => {
+                useAuth.setState({
+                    session: session,
+                    loading: false,
+                    user: session?.user ?? null
+                })
+        })
+
+        return () => unsubscribe()
+    }, [])
+}

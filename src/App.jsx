@@ -12,18 +12,22 @@ import { Workspaces, CreateWorkspace } from './pages/Workspaces.jsx'
 import { Notes, CreateNote, EditNote, Note } from './pages/Notes.jsx'
 import { RootFolders, ViewFolder, CreateFolder } from './pages/Folders.jsx'
 import { FoldersShell } from './pages/FoldersShell.jsx'
+import { LoggedIn } from './components/LoggedIn.jsx'
+import { useCurrentWorkspaceSync } from './features/workspaces/workspace.js'
 
-import { useInitializeWorkspace } from './features/workspaces/workspace.js'
+import { useInitAuth } from './features/auth/auth.jsx'
 
 import * as routes from './routes.jsx'
 
 export function App() {
 
-    useInitializeWorkspace()
+    useInitAuth()
+    useCurrentWorkspaceSync()
 
     return (
         <Routes>
           <Route element={<AppShell />}>
+           <Route element={<LoggedIn />}>
             <Route index element={
                 <ProtectedRoute ifNotLoggedIn={<HomePageNotLoggedIn />}>
                   <HomePage />
@@ -91,14 +95,17 @@ export function App() {
             } />
         </Route>
 
-            <Route path="/login" element={<LoginPage />}/>
-            <Route path="/logout" element={<LogoutPage />}/>
-            <Route path="/signup" element={<SignUpPage />}/>
             <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <h1>Dashboard</h1>
                 </ProtectedRoute>
             } />
+
+        </Route>
+
+            <Route path="/login" element={<LoginPage />}/>
+            <Route path="/logout" element={<LogoutPage />}/>
+            <Route path="/signup" element={<SignUpPage />}/>
             <Route path="*" element={<NotFoundPage />} />
           </Route>
 
