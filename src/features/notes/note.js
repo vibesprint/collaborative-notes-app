@@ -64,6 +64,12 @@ async function fetchNotes(workspace_id, folder_id, searchKey, page) {
     let query = supabase.from('notes').select().eq('workspace_id', workspace_id)
     if (searchKey != null && searchKey !== '')
         query = query.textSearch('title', `'${searchKey}'`)
+
+    if (folder_id == null)
+        query = query.is('folder_id', null)
+    else
+        query = query.eq('folder_id', folder_id)
+
     query = query.range(start, end)
 
     const { data, error } = await query
@@ -76,7 +82,7 @@ async function fetchNotes(workspace_id, folder_id, searchKey, page) {
 
 export function useGetNotes(workspace_id, folder_id, search, page) {
     return useQuery({
-        queryKey: QUERY_KEYS.list_root_search(workspace_id, search, page),
+        queryKey: QUERY_KEYS.list_in_folder_search(workspace_id, folder_id, search, page),
         queryFn: () => fetchNotes(workspace_id, folder_id, search, page)
     })
 }
