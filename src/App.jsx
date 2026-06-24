@@ -32,12 +32,6 @@ export function App() {
                  </ProtectedRoute>
             }/>
 
-            <Route path="/home" element={
-                <ProtectedRoute ifNotLoggedIn={<HomePageNotLoggedIn />}>
-                  <HomePage />
-                 </ProtectedRoute>
-            }/>
-
         <Route path={routes.WORKSPACES} element={
             <ProtectedRoute>
               <Workspaces />
@@ -82,12 +76,6 @@ export function App() {
                   <ViewFolder />
             } />
         </Route>
-
-            <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <h1>Dashboard</h1>
-                </ProtectedRoute>
-            } />
 
 
             <Route path="/login" element={<LoginPage />}/>

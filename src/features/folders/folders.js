@@ -68,11 +68,7 @@ export function useDeleteFolder() {
     return useMutation({
         mutationFn: deleteFolder,
         onSuccess: (data, args, onMutateResult, context) => {
-            let queryKey;
-            if (args.parent_id == null)
-                queryKey = QUERY_KEYS.folder_list_all(args.workspace_id, args.parent_id)
-            else
-                queryKey = QUERY_KEYS.folder_list_all(args.workspace_id, args.parent_id)
+            const queryKey = QUERY_KEYS.folder_list_all(args.workspace_id, args.parent_id)
 
             context.client.invalidateQueries({
                 queryKey

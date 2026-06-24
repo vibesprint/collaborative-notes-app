@@ -168,7 +168,7 @@ function ViewFolder_Child2({ workspace_id, folder_id }) {
         { deleteFolder.isPending && <h4>Deleting folder ...</h4> }
         { deleteFolder.isError && <h4>Unable to delete folder. Errored!</h4> }
         { deleteFolder.isSuccess && <h4 style={{ color: 'green' }}>Folder successfully deleted!</h4> }
-        <h2>Folders list</h2>
+        { !foldersIsPending && <h2>Folders list</h2> }
         {foldersIsPending && <h4>Loading folders ...</h4>}
         {foldersIsError && <h4>Error: unable to load folders</h4>}
         {foldersIsSuccess &&

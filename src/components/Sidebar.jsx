@@ -11,7 +11,6 @@ export function NormalSidebar() {
     return (
         <div className={styles.sidebarNormal} >
          <div className={styles.content}>
-          <Link to="/dashboard">Dashboard</Link>
          </div>
         </div>
     )
@@ -22,7 +21,6 @@ export function LoggedInSidebar() {
     return (
         <div className={styles.sidebarLoggedIn} >
          <div className={styles.content}>
-          <Link to="/dashboard">Dashboard</Link>
          </div>
         </div>
     )

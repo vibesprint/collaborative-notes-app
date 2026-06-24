@@ -23,7 +23,6 @@ async function createNote({title, body, folder_id, workspace_id}) {
     if (error != null)
         throw error
 
-    console.log('data from createNote', data)
     return data[0]
 }
 

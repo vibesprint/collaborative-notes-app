@@ -37,13 +37,13 @@ export function NotesList({ workspace_id, folder_id }) {
     }
 
     if (isLoading)
-        return <h1>Loading notes</h1>
+        return <h4>Loading notes</h4>
 
     if (isError)
-        return <h1>Error while loading notes: {error.message}, consider retrying</h1>
+        return <h4>Error while loading notes: {error.message}, consider retrying</h4>
 
     if(!isSuccess)
-        return <h1>Unknown error has occured, consider refreshing the page</h1>
+        return <h4>Unknown error has occured, consider refreshing the page</h4>
 
     const filteredNotes = data;
     let recentlyEdited = [...filteredNotes].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 3)
