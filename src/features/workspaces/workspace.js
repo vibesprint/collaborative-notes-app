@@ -66,6 +66,10 @@ export function useCurrentWorkspaceName() {
     return useCurrentWorkspace()?.data?.name
 }
 
+export function useSetSelectedId() {
+    return useWorkspaceStore(state => state.setSelectedId)
+}
+
 export async function getAllWorkspaces() {
     const { data, error } = await supabase.from('workspaces').select()
     if (error != null)

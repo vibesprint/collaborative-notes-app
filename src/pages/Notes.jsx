@@ -216,6 +216,7 @@ const MDXEditorPlugins = [headingsPlugin(), listsPlugin(), quotePlugin(), themat
 export function CreateNote() {
     const [searchParams, _] = useSearchParams()
     let folder_id = searchParams.has('folder_id') ? searchParams.get('folder_id') : null
+    const workspace_id = useCurrentWorkspaceId()
 
     const [title, setTitle] = useState('')
 
@@ -225,7 +226,7 @@ export function CreateNote() {
 
     const handleSubmit = (event) => {
         event.preventDefault()
-        createNote.mutate({title, body: bodyRef.current?.getMarkdown(), folder_id})
+        createNote.mutate({title, body: bodyRef.current?.getMarkdown(), folder_id, workspace_id})
     }
 
     useEffect(() => {

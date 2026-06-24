@@ -1,7 +1,7 @@
 import styles from './styles/Workspaces.module.css'
 import * as routes from '../routes.jsx'
 import { supabase } from '../lib/supabase/client.js'
-import { useWorkspaceList, useCreateWorkspace, useDeleteWorkspace } from '../features/workspaces/workspace.js'
+import { useWorkspaceList, useCreateWorkspace, useDeleteWorkspace, useSetSelectedId } from '../features/workspaces/workspace.js'
 
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Link } from 'react-router'
@@ -32,6 +32,7 @@ function WorkspaceList() {
     let workspaceList = []
 
     const { isPending, isFetching, isSuccess, data, error, isError } = useWorkspaceList()
+    const setSelectedId = useSetSelectedId()
 
     const deleteWorkspace = useDeleteWorkspace()
 
@@ -73,6 +74,10 @@ function WorkspaceList() {
         setDeleteInProgressId(null)
     }
 
+    function handleSetCurrent(workspace_id) {
+        setSelectedId(workspace_id)
+    }
+
 
     return (
         <div >
@@ -100,6 +105,7 @@ function WorkspaceList() {
 
                   <td>
                    <button onClick={() => handleDelete(elem.id)}>Delete</button>
+                   <button onClick={() => handleSetCurrent(elem.id)}>Set Current</button>
                   </td>
                 </tr>
             )
