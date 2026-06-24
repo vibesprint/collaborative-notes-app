@@ -15,7 +15,6 @@ import { SearchForm } from '../components/Search.jsx'
 
 
 export function NotesList({ workspace_id, folder_id }) {
-    const [lastId, setLastId] = useState(0)
     const [searchParams, setSearchParams] = useSearchParams()
     const search = searchParams.has('notes_q') ? searchParams.get('notes_q') : '';
 
@@ -36,16 +35,8 @@ export function NotesList({ workspace_id, folder_id }) {
         deleteNote.mutate(note)
     }
 
-    if (isLoading)
-        return <h4>Loading notes</h4>
 
-    if (isError)
-        return <h4>Error while loading notes: {error.message}, consider retrying</h4>
-
-    if(!isSuccess)
-        return <h4>Unknown error has occured, consider refreshing the page</h4>
-
-    const filteredNotes = data;
+    const filteredNotes = data ?? [];
     let recentlyEdited = [...filteredNotes].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 3)
 
     function canGoForward() {
@@ -84,11 +75,19 @@ export function NotesList({ workspace_id, folder_id }) {
             </>
         )}
 
-        <h1> Notes </h1>
-        <SearchForm paramKey="notes_q" label_text="Search Notes: " />
-        <NotesListTable notes={filteredNotes} onDelete={handleDelete} />
+        <h2> Notes </h2>
+        {isPending && <h4>Loading notes ...</h4>}
+        {isError && <h4>Error: unable to load notes</h4>}
+        {isSuccess &&
+                <>
+                <SearchForm paramKey="notes_q" label_text="Search notes: " />
+                {(filteredNotes.length === 0 ? <p>No notes</p> :
+            <NotesListTable onDelete={handleDelete} notes={filteredNotes} />
+        )}
         <button onClick={() => decPageNo()} disabled={!canGoPrevious()}>Go Previous</button>
         <button onClick={() => incPageNo()} disabled={!canGoForward()}>Go Forward</button>
+                </>
+        }
         </>
     )
 }

@@ -20,7 +20,7 @@ function useGetSearchParam(key, def) {
 
 
 
-function FolderList({ list, onDelete }) {
+function FolderListTable({ list, onDelete }) {
     const filtered = list;
     const handleDelete = onDelete
 
@@ -112,13 +112,28 @@ function ViewFolder_Child1({ workspace_id }) {
 }
 
 function ViewFolder_Child2({ workspace_id, folder_id }) {
+
+    return (
+        <div>
+        <Link to={Routes.GET_CREATE_FOLDER_INSIDE(folder_id)}>Create a folder</Link>
+        <Link to={Routes.GET_CREATE_NOTE_INSIDE(folder_id)}>Create a note</Link>
+        <div>
+        <NotesList workspace_id={workspace_id} folder_id={folder_id} />
+        </div>
+
+        <div>
+        <FoldersList workspace_id={workspace_id} folder_id={folder_id} />
+        </div>
+
+        </div>
+    )
+}
+
+export function FoldersList({ workspace_id, folder_id }) {
+
     const [searchParams, setSearchParams] = useSearchParams()
-    const notes_search = searchParams.has('notes_q') ? searchParams.get('notes_q') : ''
+
     const folders_search = searchParams.has('folders_q') ? searchParams.get('folders_q') : ''
-
-    const notes_page = searchParams.has('notes_page') ? parseInt(searchParams.get('notes_page'), 10) : 1;
-    const notes_page_no = Number.isNaN(notes_page) ? 1 : notes_page;
-
     const folders_page = searchParams.has('folders_page') ? parseInt(searchParams.get('folders_page'), 10) : 1;
     const folders_page_no = Number.isNaN(folders_page) ? 1 : folders_page;
 
@@ -155,34 +170,25 @@ function ViewFolder_Child2({ workspace_id, folder_id }) {
     }
 
     const filteredFolders = folders
-
     return (
-        <div>
-        <Link to={Routes.GET_CREATE_FOLDER_INSIDE(folder_id)}>Create a folder</Link>
-        <Link to={Routes.GET_CREATE_NOTE_INSIDE(folder_id)}>Create a note</Link>
-        <div>
-        <NotesList workspace_id={workspace_id} folder_id={folder_id} />
-        </div>
 
-        <div>
+        <>
         { deleteFolder.isPending && <h4>Deleting folder ...</h4> }
         { deleteFolder.isError && <h4>Unable to delete folder. Errored!</h4> }
         { deleteFolder.isSuccess && <h4 style={{ color: 'green' }}>Folder successfully deleted!</h4> }
-        { !foldersIsPending && <h2>Folders list</h2> }
+        <h2>Folders list</h2>
         {foldersIsPending && <h4>Loading folders ...</h4>}
         {foldersIsError && <h4>Error: unable to load folders</h4>}
         {foldersIsSuccess &&
                 <>
                 <SearchForm paramKey="folders_q" label_text="Search folders by name: " />
                 {(filteredFolders.length === 0 ? <p>No folders</p> :
-            <FolderList onDelete={handleDeleteFolder} list={filteredFolders} />
+            <FolderListTable onDelete={handleDeleteFolder} list={filteredFolders} />
         )}
             <button onClick={() => decFoldersPageNo()} disabled={!canFoldersGoPrevious()}>Go Previous</button>
             <button onClick={() => incFoldersPageNo()} disabled={!canFoldersGoForward()}>Go Forward</button>
             </>
         }
-        </div>
-
-        </div>
+        </>
     )
 }
