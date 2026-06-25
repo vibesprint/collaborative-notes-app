@@ -35,6 +35,25 @@ export function useCurrentWorkspace() {
     return { isPending, isError, error, data: curWs }
 }
 
+async function getCurrentWorkspaceMembership(workspace_id, user_id) {
+    const { data, error } = await supabase.from('workspace_members').select().match({ workspace_id, user_id })
+    if (error != null) throw error
+
+    return data[0]
+}
+
+export function useCurrentWorkspaceMembership() {
+    const { isPending: wsIsPending, isError: wsIsError, error: wsError, data: wsData } = useCurrentWorkspace()
+    const user  = useAuth(state => state.user)
+
+    return useQuery({
+        queryKey: QUERY_KEYS.member(wsData?.id, user?.id),
+        queryFn: () => getCurrentWorkspaceMembership(wsData?.id, user?.id),
+        enabled: (!!user) && (!!wsData)
+    })
+
+}
+
 export function useCurrentWorkspaceSync() {
     const { isPending, isError, data } = useCurrentWorkspace()
     const selectedId = useWorkspaceStore(state => state.selectedId)
