@@ -63,6 +63,14 @@ export function CreateFolder() {
 
     let parent_folder_id = searchParams.has('parent_id') ? searchParams.get('parent_id') : null;
 
+    const { channel } = useFolderChannel({ workspace_id, folder_id: parent_folder_id, onBroadcast })
+
+    function onBroadcast(channel, payload) {
+        if (payload.event === 'delete_or_create') {
+            invalidateFolderData(workspace_id, parent_folder_id)
+        }
+    }
+
     function handleSubmit(event) {
         event.preventDefault()
         createFolder.mutate({ name: foldername, workspace_id, parent_id: parent_folder_id })
@@ -75,6 +83,14 @@ export function CreateFolder() {
 
     useEffect(() => {
         if (!createFolder.isError && !createFolder.isSuccess) return
+
+        if (createFolder.isSuccess)
+            channel?.send({
+                type: 'broadcast',
+                event: 'delete_or_create',
+                payload: { folder_name: createFolder.variables?.name }
+            })
+
         if(createFolder.isSuccess) setFoldername('')
         const timer = setTimeout(() => createFolder.reset(), 2500)
         return () => clearTimeout(timer)
@@ -184,7 +200,14 @@ export function FoldersList({ workspace_id, folder_id }) {
     const { isPending: foldersIsPending, isError: foldersIsError,
         isSuccess: foldersIsSuccess, data: folders, error: foldersError } = useGetFolders(workspace_id, folder_id, folders_search, folders_page_no)
 
-    const { isSuccess: chIsSuccess, channel } = useFolderChannel({ workspace_id, folder_id })
+    function handleBroadcast(channel, payload) {
+        if (payload.event === 'delete_or_create') {
+            setNotice('Folder deleted or created by another user !')
+            invalidateFolderData(workspace_id, folder_id)
+        }
+    }
+
+    const { isSuccess: chIsSuccess, channel } = useFolderChannel({ workspace_id, folder_id, onBroadcast: handleBroadcast})
 
     const [notice, setNotice] = useState('')
 
@@ -200,7 +223,7 @@ export function FoldersList({ workspace_id, folder_id }) {
             channel?.send({
                 type: 'broadcast',
                 event: 'delete_or_create',
-                payload: { msg: `'Hi there, deleted folder': ${deleteFolder.variables?.name}` }
+                payload: { folder_name: deleteFolder.variables?.name }
             })
         }
 
