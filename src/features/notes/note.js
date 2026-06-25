@@ -146,3 +146,16 @@ export function useUpdateNote(note) {
         }
     })
 }
+
+export function invalidateNotesInFolderData(workspace_id, folder_id) {
+    queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.list_in_folder_all(workspace_id, folder_id)
+    })
+}
+
+
+export function invalidateNoteData(note_id) {
+    queryClient.invalidateNoteData({
+        queryKey: QUERY_KEYS.details(note_id)
+    })
+}

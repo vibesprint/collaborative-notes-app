@@ -7,11 +7,13 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 
 import { useCreateNote, useDeleteNote,
-    useGetNotes, useNote, useUpdateNote,
+    useGetNotes, useNote, useUpdateNote, invalidateNotesInFolderData,
     QUERY_KEYS as notesQueryKeys, PAGE_SIZE as NOTES_PAGE_SIZE } from '../features/notes/note.js'
 import { useGetTagsForNotes, useAddTagToNote, useGetTagsForWorkspace, useDeleteTagFromNote } from '../features/tags/tags.js'
 import { useWorkspaceMember, useCurrentWorkspaceId } from '../features/workspaces/workspace.js'
 import { SearchForm } from '../components/Search.jsx'
+import { useNotesListChannel } from '../features/channels/channel.js'
+import { useAuth } from '../features/auth/auth.jsx'
 
 
 export function NotesList({ workspace_id, folder_id }) {
@@ -23,13 +25,36 @@ export function NotesList({ workspace_id, folder_id }) {
 
     const { isPending, isError, isSuccess, isLoading, data, error } = useGetNotes(workspace_id, folder_id, search, page_no)
 
+    function onBroadcast(channel, payload) {
+        if (payload.event === 'note_create_or_delete') {
+            setNotice('A note was created or deleted')
+            invalidateNotesInFolderData(workspace_id, folder_id)
+        }
+    }
+    const { channel } = useNotesListChannel({ workspace_id, folder_id, onBroadcast })
+
+    const [notice, setNotice] = useState('')
+
     const deleteNote = useDeleteNote(notesQueryKeys.list_in_folder_all(workspace_id, folder_id))
 
     useEffect(() => {
         if (!deleteNote.isError && !deleteNote.isSuccess) return
+
+        if (deleteNote.isSuccess)
+            channel?.send({
+                type: 'broadcast',
+                event: 'note_create_or_delete',
+            })
+
         const timer = setTimeout(() => deleteNote.reset(), 3000)
         return () => clearTimeout(timer)
     }, [deleteNote.isSuccess, deleteNote.isError])
+
+    useEffect(() => {
+        if (notice === '') return
+        const timer = setTimeout(() => setNotice(''), 3000)
+        return () => clearTimeout(timer)
+    }, [notice])
 
     function handleDelete(note) {
         deleteNote.mutate(note)
@@ -65,6 +90,7 @@ export function NotesList({ workspace_id, folder_id }) {
 
     return (
         <>
+        { notice !== '' && <p style={{ color: 'blue' }}>{notice}</p> }
         { deleteNote.isPending && <h4>Deleting note ...</h4> }
         { deleteNote.isError && <h4>Unable to delete note. Errored!</h4> }
         { deleteNote.isSuccess && <h4 style={{ color: 'green' }}>Note successfully deleted!</h4> }
@@ -179,6 +205,8 @@ export function CreateNote() {
 
     const createNote = useCreateNote()
 
+    const { channel } = useNotesListChannel({ workspace_id, folder_id })
+
     const handleSubmit = (event) => {
         event.preventDefault()
         createNote.mutate({title, body: bodyRef.current?.getMarkdown(), folder_id, workspace_id})
@@ -189,6 +217,11 @@ export function CreateNote() {
         if (createNote.isSuccess) {
             bodyRef.current?.setMarkdown('')
             setTitle('')
+
+            channel?.send({
+                type: 'broadcast',
+                event: 'note_create_or_delete',
+            })
         }
         const timer = setTimeout(() => createNote.reset(), 3000)
         return () => clearTimeout(timer)

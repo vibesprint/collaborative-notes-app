@@ -48,3 +48,54 @@ function subscribe(channel, setIsPending, setIsError, setError, onPresence, onBr
     })
 
 }
+
+
+export function useNotesListChannel({ workspace_id, folder_id, onPresence, onBroadcast }) {
+    const channel_name =`${workspace_id}:notes:${folder_id}`
+
+    const [isPending, setIsPending] = useState(true)
+    const [isError, setIsError] = useState(false)
+    const [error, setError] = useState(null)
+    const [channel, setChannel] = useState(null)
+
+    useEffect(() => {
+        const new_channel = supabase.channel(channel_name)
+        try {
+            setChannel(new_channel)
+            subscribe(new_channel, setIsPending, setIsError, setError, onPresence, onBroadcast)
+        } catch(err) {
+            setIsPending(false)
+            setIsError(true)
+            setError(err)
+        }
+        return () => new_channel.unsubscribe()
+
+    }, [channel_name])
+
+    return { isPending, isError, isSuccess: !isPending && !isError, error, channel }
+}
+
+export function useNoteChannel({ workspace_id, note_id, onPresence, onBroadcast }) {
+    const channel_name =`${workspace_id}:note:${note_id}`
+
+    const [isPending, setIsPending] = useState(true)
+    const [isError, setIsError] = useState(false)
+    const [error, setError] = useState(null)
+    const [channel, setChannel] = useState(null)
+
+    useEffect(() => {
+        const new_channel = supabase.channel(channel_name)
+        try {
+            setChannel(new_channel)
+            subscribe(new_channel, setIsPending, setIsError, setError, onPresence, onBroadcast)
+        } catch(err) {
+            setIsPending(false)
+            setIsError(true)
+            setError(err)
+        }
+        return () => new_channel.unsubscribe()
+
+    }, [channel_name])
+
+    return { isPending, isError, isSuccess: !isPending && !isError, error, channel }
+}
