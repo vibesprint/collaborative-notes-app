@@ -10,7 +10,9 @@ import { useOptimisticMutation } from '../utils/optimistic.js'
 export function useCreateNote() {
     return useMutation({
         mutationFn: createNote,
-        onSuccess: (data, args, onMutateResult, context) => context.client.invalidateQueries(QUERY_KEYS.list_root_all(data.workspace_id)),
+        onSettled: (data, error, args, onMutateResult, context) => {
+            context.client.invalidateQueries(QUERY_KEYS.list_in_folder_all(data.workspace_id, data.folder_id))
+        }
     })
 }
 
@@ -52,8 +54,6 @@ export const PAGE_SIZE = 10;
 export const QUERY_KEYS = {
     all: ['notes'],
     list_all: (wspc_id) => [...QUERY_KEYS.all, wspc_id, 'list'],
-    list_root_all: (wspc_id) => [...QUERY_KEYS.all, wspc_id, 'list', 'root'],
-    list_root_search: (wspc_id, search, page_no) => [...QUERY_KEYS.all, wspc_id, 'list',  'root', 'search', search, 'pageno', page_no],
     details: (note_id) => [...QUERY_KEYS.all, note_id],
     list_in_folder_all: (wspc_id, folder_id) => [...QUERY_KEYS.all, wspc_id, 'list', 'folder', folder_id],
     list_in_folder_search: (wspc_id, folder_id, search, page_no) => [...QUERY_KEYS.all, wspc_id, 'list', 'folder', folder_id, 'search', search, 'pageno', page_no]
@@ -136,7 +136,7 @@ export function useUpdateNote(note) {
                 })
 
                 context.client.invalidateQueries({
-                    queryKey: QUERY_KEYS.list_root_all(note.workspace_id),
+                    queryKey: QUERY_KEYS.list_in_folder_all(note.workspace_id, note.folder_id),
                 })
             }
         },

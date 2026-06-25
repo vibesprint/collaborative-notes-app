@@ -23,7 +23,7 @@ export function NotesList({ workspace_id, folder_id }) {
 
     const { isPending, isError, isSuccess, isLoading, data, error } = useGetNotes(workspace_id, folder_id, search, page_no)
 
-    const deleteNote = useDeleteNote(notesQueryKeys.list_root_all(workspace_id))
+    const deleteNote = useDeleteNote(notesQueryKeys.list_in_folder_all(workspace_id, folder_id))
 
     useEffect(() => {
         if (!deleteNote.isError && !deleteNote.isSuccess) return

@@ -54,7 +54,7 @@ function FolderListTable({ list, onDelete }) {
 export function CreateFolder() {
     const [searchParams, setSearchParams] = useSearchParams()
     const [foldername, setFoldername] = useState('')
-    const workspace_id = useCurrentWorkspaceId()
+    const workspace_id = useCurrentWorkspace().data?.id
 
     const createFolder = useCreateFolder()
 
