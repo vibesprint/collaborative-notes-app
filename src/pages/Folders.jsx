@@ -151,8 +151,6 @@ function FolderPresenceList({ workspace_id, folder_id }) {
         return presenceState[key].map(elem => elem.email)
     }).flat().filter(em => em != null && em !== curuser_email)
 
-
-    console.log('presence state in FolderPresenceList', presenceState)
     return (
         <div>
         {isPending && <p>Connecting to realtime ...</p> }
