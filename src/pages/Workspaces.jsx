@@ -1,7 +1,8 @@
 import styles from './styles/Workspaces.module.css'
 import * as routes from '../routes.jsx'
 import { supabase } from '../lib/supabase/client.js'
-import { useWorkspaceList, useCreateWorkspace, useDeleteWorkspace, useSetSelectedId } from '../features/workspaces/workspace.js'
+import { useWorkspaceList, useCreateWorkspace, useWorkspaceMember,
+    useDeleteWorkspace, useSetSelectedId } from '../features/workspaces/workspace.js'
 
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Link } from 'react-router'
@@ -91,6 +92,7 @@ function WorkspaceList() {
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Owner</th>
                 <th>Actions</th>
              </tr>
             </thead>
@@ -98,11 +100,13 @@ function WorkspaceList() {
           <tbody>
         { workspaceList.map((elem) => {
             return (
-                <tr key={elem.name}>
+                <tr key={elem.id}>
                   <td>
                     {elem.name}
                   </td>
-
+                  <td>
+                <WorkspaceOwner user_id={elem.created_by} />
+                  </td>
                   <td>
                    <button onClick={() => handleDelete(elem.id)}>Delete</button>
                    <button onClick={() => handleSetCurrent(elem.id)}>Set Current</button>
@@ -117,6 +121,18 @@ function WorkspaceList() {
 
     </div>
     )
+}
+
+function WorkspaceOwner({ user_id }) {
+    const { isPending, isError, error, data } = useWorkspaceMember(user_id)
+
+    if (isPending)
+        return 'loading ...'
+
+    if (isError)
+        return `error: ${error.message}`
+
+    return data.email
 }
 
 

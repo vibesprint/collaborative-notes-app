@@ -16,7 +16,8 @@ export const QUERY_KEYS = {
     list: () => [...QUERY_KEYS.all, 'list'],
     scoped: (id) => [...QUERY_KEYS.all, 'scoped', id],
     notes: (id) => [...QUERY_KEYS.scoped(id), 'notes'],
-    member: (wsId, userId) => [...QUERY_KEYS.scoped(wsId), 'member', userId]
+    member: (wsId, userId) => [...QUERY_KEYS.scoped(wsId), 'member', userId],
+    membership: (wsId, userId) => [...QUERY_KEYS.scoped(wsId), 'membership', userId],
 }
 
 export const useWorkspaceStore = zustandCreate(persist((set) =>({
@@ -47,7 +48,7 @@ export function useCurrentWorkspaceMembership() {
     const user  = useAuth(state => state.user)
 
     return useQuery({
-        queryKey: QUERY_KEYS.member(wsData?.id, user?.id),
+        queryKey: QUERY_KEYS.membership(wsData?.id, user?.id),
         queryFn: () => getCurrentWorkspaceMembership(wsData?.id, user?.id),
         enabled: (!!user) && (!!wsData)
     })
