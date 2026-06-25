@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 
 import { SearchForm } from '../components/Search.jsx'
 
-import {useCreateFolder, useGetFolder, useDeleteFolder, useGetFolders,
+import {useCreateFolder, useGetFolder, useDeleteFolder, useGetFolders, invalidateFolderData,
      PAGE_SIZE as FOLDERS_PAGE_SIZE } from '../features/folders/folders.js'
 import { useGetNotes } from '../features/notes/note.js'
 
@@ -12,7 +12,7 @@ import { NotesList } from './Notes.jsx'
 import { QUERY_KEYS as notesQueryKeys, useDeleteNote, PAGE_SIZE as NOTES_PAGE_SIZE } from '../features/notes/note.js'
 import * as Routes from '../routes.jsx'
 
-import { useFolderPresence } from '../features/channels/channel.js'
+import { useFolderChannel } from '../features/channels/channel.js'
 import { useAuth } from '../features/auth/auth.jsx'
 
 
@@ -137,14 +137,21 @@ function ViewFolder_Child2({ workspace_id, folder_id }) {
 }
 
 function FolderPresenceList({ workspace_id, folder_id }) {
-    const { isPending, isError, error, presenceState, channel } = useFolderPresence(workspace_id, folder_id)
-    const isSuccess = !isPending && !isError
     const curuser_email = useAuth(state => state.user)?.email
+    const [presenceState, setPresenceState] = useState(null)
+
+    function handlePresence(channel, payload) {
+        if (payload.event === 'sync') {
+            setPresenceState(channel.presenceState())
+        }
+    }
+
+    const { isPending, isSuccess, isError, error, channel } = useFolderChannel({ workspace_id, folder_id, onPresence: handlePresence })
 
     useEffect(() => {
-        if (isPending || isError) return
+        if (!isSuccess) return
         channel.track({ email: curuser_email })
-    }, [isPending, isError])
+    }, [isSuccess])
 
 
     const presentEmails = Object.keys(presenceState ?? {}).map(key => {
@@ -177,6 +184,10 @@ export function FoldersList({ workspace_id, folder_id }) {
     const { isPending: foldersIsPending, isError: foldersIsError,
         isSuccess: foldersIsSuccess, data: folders, error: foldersError } = useGetFolders(workspace_id, folder_id, folders_search, folders_page_no)
 
+    const { isSuccess: chIsSuccess, channel } = useFolderChannel({ workspace_id, folder_id })
+
+    const [notice, setNotice] = useState('')
+
     const deleteFolder = useDeleteFolder()
 
     function handleDeleteFolder(folder) {
@@ -185,11 +196,23 @@ export function FoldersList({ workspace_id, folder_id }) {
 
     useEffect(() => {
         if (!deleteFolder.isError && !deleteFolder.isSuccess) return
+        if (deleteFolder.isSuccess) {
+            channel?.send({
+                type: 'broadcast',
+                event: 'delete_or_create',
+                payload: { msg: `'Hi there, deleted folder': ${deleteFolder.variables?.name}` }
+            })
+        }
+
         const timer = setTimeout(() => deleteFolder.reset(), 3000)
         return () => clearTimeout(timer)
     }, [deleteFolder.isSuccess, deleteFolder.isError])
 
-
+    useEffect(() => {
+        if (notice === '') return
+        const timer = setTimeout(() => setNotice(''), 2500)
+        return () => clearTimeout(timer)
+    }, [notice])
 
     function canFoldersGoForward() {
         return folders.length >= FOLDERS_PAGE_SIZE
@@ -214,6 +237,7 @@ export function FoldersList({ workspace_id, folder_id }) {
         { deleteFolder.isError && <h4>Unable to delete folder. Errored!</h4> }
         { deleteFolder.isSuccess && <h4 style={{ color: 'green' }}>Folder successfully deleted!</h4> }
         <h2>Folders list</h2>
+        { notice !== '' && <p style={{ color: 'blue' }}>{notice}</p> }
         {foldersIsPending && <h4>Loading folders ...</h4>}
         {foldersIsError && <h4>Error: unable to load folders</h4>}
         {foldersIsSuccess &&

@@ -91,3 +91,12 @@ export function useGetFolder(workspace_id, folder_id) {
         queryFn: () => getFolder(workspace_id, folder_id)
     })
 }
+
+
+import { queryClient } from '../../queryClient.js'
+
+export function invalidateFolderData(workspace_id, folder_id) {
+    queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.folder_list_all(workspace_id, folder_id)
+    })
+}
