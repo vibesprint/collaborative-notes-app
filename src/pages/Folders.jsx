@@ -12,6 +12,9 @@ import { NotesList } from './Notes.jsx'
 import { QUERY_KEYS as notesQueryKeys, useDeleteNote, PAGE_SIZE as NOTES_PAGE_SIZE } from '../features/notes/note.js'
 import * as Routes from '../routes.jsx'
 
+import { useFolderPresence } from '../features/channels/channel.js'
+import { useAuth } from '../features/auth/auth.jsx'
+
 
 function useGetSearchParam(key, def) {
     const [searchParams, _] = useSearchParams()
@@ -120,6 +123,7 @@ function ViewFolder_Child2({ workspace_id, folder_id }) {
         <div>
         <Link to={Routes.GET_CREATE_FOLDER_INSIDE(folder_id)}>Create a folder</Link>
         <Link to={Routes.GET_CREATE_NOTE_INSIDE(folder_id)}>Create a note</Link>
+        <FolderPresenceList workspace_id={workspace_id} folder_id={folder_id} />
         <div>
         <NotesList workspace_id={workspace_id} folder_id={folder_id} />
         </div>
@@ -128,6 +132,38 @@ function ViewFolder_Child2({ workspace_id, folder_id }) {
         <FoldersList workspace_id={workspace_id} folder_id={folder_id} />
         </div>
 
+        </div>
+    )
+}
+
+function FolderPresenceList({ workspace_id, folder_id }) {
+    const { isPending, isError, error, presenceState, channel } = useFolderPresence(workspace_id, folder_id)
+    const isSuccess = !isPending && !isError
+    const curuser_email = useAuth(state => state.user)?.email
+
+    useEffect(() => {
+        if (isPending || isError) return
+        channel.track({ email: curuser_email })
+    }, [isPending, isError])
+
+
+    const presentEmails = Object.keys(presenceState ?? {}).map(key => {
+        return presenceState[key].map(elem => elem.email)
+    }).flat().filter(em => em != null && em !== curuser_email)
+
+
+    console.log('presence state in FolderPresenceList', presenceState)
+    return (
+        <div>
+        {isPending && <p>Connecting to realtime ...</p> }
+        { isError && <p>Error: unable to connect to realtime: {error.message}</p> }
+        {isSuccess && <p style={{ color: 'green' }}>Connected !</p>}
+        <ul>
+        { presentEmails.map(em => {
+            return <li key={em}>{em}</li>
+        })
+        }
+        </ul>
         </div>
     )
 }
