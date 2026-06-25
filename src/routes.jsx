@@ -29,3 +29,6 @@ export const GET_CREATE_NOTE_INSIDE = (id) => {
 }
 
 export const ROOT = '/folder/root'
+
+export const ADD_MEMBER = '/workspace/addmember'
+export const GET_ADD_MEMBER = (wspc_id) => `/workspace/addmember?wspc_id=${wspc_id}`

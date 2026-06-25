@@ -2,10 +2,10 @@ import styles from './styles/Workspaces.module.css'
 import * as routes from '../routes.jsx'
 import { supabase } from '../lib/supabase/client.js'
 import { useWorkspaceList, useCreateWorkspace, useWorkspaceMember,
-    useDeleteWorkspace, useSetSelectedId } from '../features/workspaces/workspace.js'
+    useDeleteWorkspace, useSetSelectedId, useAddWorkspaceMember } from '../features/workspaces/workspace.js'
 
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { Link } from 'react-router'
+import { Link, useSearchParams, useNavigate } from 'react-router'
 
 import { useState, useEffect } from 'react'
 
@@ -39,6 +39,8 @@ function WorkspaceList() {
 
     const [deleteInProgress, setDeleteInProgress] = useState(false)
     const [deleteInProgressId, setDeleteInProgressId] = useState(null)
+
+    const navigate = useNavigate()
 
     useEffect(() => {
         const [err, succ] = [deleteWorkspace.isError, deleteWorkspace.isSuccess]
@@ -79,6 +81,9 @@ function WorkspaceList() {
         setSelectedId(workspace_id)
     }
 
+    function handleAddMember(workspace_id) {
+        navigate(routes.GET_ADD_MEMBER(workspace_id))
+    }
 
     return (
         <div >
@@ -110,6 +115,7 @@ function WorkspaceList() {
                   <td>
                    <button onClick={() => handleDelete(elem.id)}>Delete</button>
                    <button onClick={() => handleSetCurrent(elem.id)}>Set Current</button>
+                   <button onClick={() => handleAddMember(elem.id)}>Add a member</button>
                   </td>
                 </tr>
             )
@@ -184,6 +190,54 @@ export function CreateWorkspace() {
             <button type="submit">Make a workspace</button>
           </form>
          </div>
+        </div>
+    )
+}
+
+
+export function AddWorkspaceMember() {
+    const [email, setEmail] = useState('')
+    const [searchParams, _] = useSearchParams()
+    const [notice, setNotice] = useState('')
+
+    const workspace_id = searchParams.has('wspc_id') ? searchParams.get('wspc_id') : null;
+
+    const add_member = useAddWorkspaceMember()
+
+    function handleSubmit(event) {
+        event.preventDefault()
+        if (workspace_id == null) {
+            setNotice('No workspace set. Visit this page using a valid url')
+            return
+        }
+
+        add_member.mutate({ workspace_id, email })
+    }
+
+    useEffect(() => {
+        if (!add_member.isSuccess && !add_member.isError) return
+        const timer = setTimeout(() => add_member.reset(), 2500)
+        return () => clearTimeout(timer)
+    }, [add_member.isError, add_member.isSuccess])
+
+    useEffect(() => {
+        if (notice === '') return
+        const timer = setTimeout(() => setNotice(''), 2500)
+        return () => clearTimeout(timer)
+    }, [notice])
+
+    return (
+        <div>
+          { add_member.isPending && <p>Adding member ...</p> }
+          { add_member.isError && <p>Error: unable to add member!</p> }
+          { add_member.isSuccess && <p style={{ color: 'green' }}>Successfully added member</p> }
+          { notice !== '' && <h4>{notice}</h4> }
+          <form onSubmit={handleSubmit} >
+            <label htmlFor="email" >Email of the invitee: </label>
+            <input type="email" id="email" value={email} onChange={(event) => setEmail(event.target.value)} name="email" />
+
+            <button type="submit">Add member</button>
+          </form>
         </div>
     )
 }

@@ -17,6 +17,7 @@ export const QUERY_KEYS = {
     scoped: (id) => [...QUERY_KEYS.all, 'scoped', id],
     notes: (id) => [...QUERY_KEYS.scoped(id), 'notes'],
     member: (wsId, userId) => [...QUERY_KEYS.scoped(wsId), 'member', userId],
+    membership_list: (wsId) => [...QUERY_KEYS.scoped(wsId), 'membership', 'list'],
     membership: (wsId, userId) => [...QUERY_KEYS.scoped(wsId), 'membership', userId],
 }
 
@@ -164,5 +165,24 @@ export function useWorkspaceMember(user_id) {
     return useQuery({
         queryKey: QUERY_KEYS.member(wsId, user_id),
         queryFn: () => getMember(user_id)
+    })
+}
+
+
+async function add_workspace_member(wspc_id, email) {
+    const { error } = await supabase.rpc('add_workspace_member', { wspc_id, email })
+
+    if (error != null) throw error
+}
+
+export function useAddWorkspaceMember() {
+    return useMutation({
+        mutationFn: ({ workspace_id, email }) => add_workspace_member(workspace_id, email),
+        onSettled: (data, error, args, onMutateResult, context) => {
+            const queryKey = QUERY_KEYS.membership_list(args.workspace_id)
+            context.client.invalidateQueries({
+                queryKey
+            })
+        }
     })
 }

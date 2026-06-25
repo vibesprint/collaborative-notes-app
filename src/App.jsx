@@ -8,7 +8,7 @@ import { LogoutPage } from './pages/LogoutPage.jsx'
 import { SignUpPage } from './pages/SignUpPage.jsx'
 import { ProtectedRoute } from './ProtectedRoute.jsx'
 import { HomePage, HomePageNotLoggedIn } from './pages/HomePage.jsx'
-import { Workspaces, CreateWorkspace } from './pages/Workspaces.jsx'
+import { Workspaces, CreateWorkspace, AddWorkspaceMember } from './pages/Workspaces.jsx'
 import { CreateNote, EditNote, Note } from './pages/Notes.jsx'
 import { ViewFolder, CreateFolder } from './pages/Folders.jsx'
 import { FoldersShell } from './pages/FoldersShell.jsx'
@@ -41,6 +41,12 @@ export function App() {
         <Route path={routes.WORKSPACES_CREATE} element={
             <ProtectedRoute>
               <CreateWorkspace />
+            </ProtectedRoute>
+        } />
+
+        <Route path={routes.ADD_MEMBER} element={
+            <ProtectedRoute>
+              <AddWorkspaceMember />
             </ProtectedRoute>
         } />
 
