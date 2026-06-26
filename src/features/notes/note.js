@@ -88,7 +88,7 @@ export function useGetNotes(workspace_id, folder_id, search, page) {
 }
 
 
-async function getNote(note_id) {
+export async function getNote(note_id) {
     const { data, error } = await supabase.from('notes').select().eq('id', note_id)
 
     if (error != null)
@@ -155,7 +155,7 @@ export function invalidateNotesInFolderData(workspace_id, folder_id) {
 
 
 export function invalidateNoteData(note_id) {
-    queryClient.invalidateNoteData({
+    queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.details(note_id)
     })
 }

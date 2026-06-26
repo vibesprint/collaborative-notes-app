@@ -247,13 +247,17 @@ export function CreateNote() {
 
 
 export function EditNote() {
-    const note_id = useParams().id
+    let note_id = parseInt(useParams().id)
 
+    if (Number.isNaN(parseInt(note_id)))
+        return <h4>Error: invalid note id</h4>
+
+    return <EditNote_Child1 note_id={parseInt(note_id)} />
+
+}
+
+function EditNote_Child1({ note_id }) {
     const { isLoading, isSuccess, isError, data: note } = useNote(note_id)
-
-    const [title, setTitle] = useState(note?.title ?? null)
-    const [body, setBody] = useState(note?.body ?? null)
-
 
     if (isLoading)
         return <h1>Loading the note ...</h1>
@@ -264,21 +268,29 @@ export function EditNote() {
 
     return <EditNoteForm note={ note } />
 
+
 }
 
 import { debounce } from '../features/utils/debounce.js'
+import { invalidateNoteData, getNote } from '../features/notes/note.js'
 
 function EditNoteForm({ note }) {
 
     const [title, setTitle] = useState(note.title)
     const [body, setBody] = useState(note.body)
+    const [isRefreshing, setIsRefreshing] = useState(false)
+    const [refreshError, setRefreshError] = useState(null)
     const firstRender = useRef(true)
 
     const [dirty, setDirty] = useState(false)
 
     const updateNote = useUpdateNote(note)
 
-    const debounceSave = useMemo(() => debounce(updateNote.mutate, 1000), [])
+    useEffect(() => {
+        if (refreshError == null) return
+        const timer = setTimeout(() => setRefreshError(null), 3000)
+        return () => clearTimeout(timer)
+    }, [refreshError])
 
     function handleSubmit(event) {
         event.preventDefault()
@@ -290,14 +302,27 @@ function EditNoteForm({ note }) {
         updateNote.reset()
         setTitle(event.target.value)
         setDirty(true)
-        debounceSave({ title: event.target.value, body, note_id: note.id })
     }
 
     function handleBodyChange(markdown) {
         updateNote.reset()
         setBody(markdown)
         setDirty(true)
-        debounceSave({ title, body: markdown, note_id: note.id })
+    }
+
+    function handleUpdate(event) {
+        event.preventDefault()
+        setIsRefreshing(true)
+        getNote(note.id).then(note => {
+            setTitle(note.title)
+            setBody(note.body)
+        }).catch(err => {
+            setIsRefreshing(false)
+        }).finally(() => {
+            setIsRefreshing(false)
+            setDirty(false)
+            updateNote.reset()
+        })
     }
 
     const status = updateNote.isPending ? {text: 'Saving ...', color: 'blue' }
@@ -308,13 +333,16 @@ function EditNoteForm({ note }) {
     return (
         <div className="main">
          <div className="container">
+          { isRefreshing && <h4>Refreshing ...</h4> }
+          { refreshError != null && <h4 style={{ color: 'red' }}>Refresh error: {refreshError.message}</h4> }
           <p style={{color: status.color}}>{status.text}</p>
           <form onSubmit={handleSubmit} className="container" >
             <textarea value={title} style={{ height: '2rem' }} name="title" onChange={handleTitleChange}
                 placeholder={'Title'} />
             <MDXEditor markdown={note.body} plugins={MDXEditorPlugins} name="body"
                  placeholder={'Body of the note'} onChange={handleBodyChange} />
-            <button type="submit">Update note</button>
+            <button type="submit">Save note</button>
+            <button onClick={handleUpdate} >Update note to latest version</button>
           </form>
           <NoteTagsForm note={note} />
          </div>
