@@ -273,6 +273,7 @@ function EditNote_Child1({ note_id }) {
 
 import { debounce } from '../features/utils/debounce.js'
 import { invalidateNoteData, getNote } from '../features/notes/note.js'
+import { useNoteChannel } from '../features/channels/channel.js'
 
 function EditNoteForm({ note }) {
 
@@ -280,11 +281,28 @@ function EditNoteForm({ note }) {
     const [body, setBody] = useState(note.body)
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [refreshError, setRefreshError] = useState(null)
+    const [typing, setTyping] = useState(false)
     const firstRender = useRef(true)
 
     const [dirty, setDirty] = useState(false)
 
     const updateNote = useUpdateNote(note)
+
+    function onBroadcast(channel, payload) {
+        console.log('received broadcast', payload)
+    }
+
+
+    const { isPending, isError, isSuccess, channel } = useNoteChannel({ workspace_id: note.workspace_id, folder_id: note.folder_id, onBroadcast })
+
+    function sendTrack(payload) {
+        channel?.track(payload)
+        setTyping(false)
+    }
+
+    const debounceSendTrack = useMemo(() => debounce(sendTrack, 3000), [])
+
+    const email = useAuth(state => state.user)?.email
 
     useEffect(() => {
         if (refreshError == null) return
@@ -298,7 +316,16 @@ function EditNoteForm({ note }) {
         updateNote.mutate({ note_id: note.id, title, body })
     }
 
+    function handleChangeCommon() {
+        if (!typing) {
+            setTyping(true)
+            channel.track({ email, typing: true })
+        }
+        debounceSendTrack({ email, typing: false })
+    }
+
     function handleTitleChange(event) {
+        handleChangeCommon()
         updateNote.reset()
         setTitle(event.target.value)
         setDirty(true)
@@ -325,6 +352,7 @@ function EditNoteForm({ note }) {
         })
     }
 
+
     const status = updateNote.isPending ? {text: 'Saving ...', color: 'blue' }
                  : updateNote.isError ? {text: 'error, unable to save', color: 'red' }
                  : updateNote.isSuccess ? {text: 'Saved', color: 'green'}
@@ -333,6 +361,8 @@ function EditNoteForm({ note }) {
     return (
         <div className="main">
          <div className="container">
+          <NotePresenceList workspace_id={note.workspace_id} folder_id={note.folder_id} />
+          <NoteTypingList workspace_id={note.workspace_id} folder_id={note.folder_id} />
           { isRefreshing && <h4>Refreshing ...</h4> }
           { refreshError != null && <h4 style={{ color: 'red' }}>Refresh error: {refreshError.message}</h4> }
           <p style={{color: status.color}}>{status.text}</p>
@@ -346,6 +376,80 @@ function EditNoteForm({ note }) {
           </form>
           <NoteTagsForm note={note} />
          </div>
+        </div>
+    )
+}
+
+function NoteTypingList({ workspace_id, folder_id }) {
+    const [presenceState, setPresenceState] = useState(null)
+    function onPresence(channel, payload) {
+        if (payload.event === 'sync')
+            setPresenceState(channel.presenceState())
+    }
+
+    const { isPending, isError, isSuccess, error, channel } = useNoteChannel({ workspace_id,
+        folder_id, onPresence })
+
+    if(isPending)
+        return <p>Connecting for typing state ...</p>
+
+    if (isError)
+        return <p>Error: typing status would not be visible: {error.message} </p>
+
+    const typing_emails = Object.keys(presenceState ?? {}).map(key => {
+        return presenceState[key]
+    }).flat().filter(em => em != null && em !== curuser_email && em.typing)
+
+
+    if (typing_emails.length === 0)
+        return <p>No one is typing !</p>
+
+    return (
+        <div>
+        <ul>
+        { typing_emails.map(em => {
+            return <li key={em}>{em}</li>
+        })
+        }
+        </ul>
+        </div>
+    )
+
+}
+
+function NotePresenceList({ workspace_id, folder_id }) {
+    const curuser_email = useAuth(state => state.user)?.email
+    const [presenceState, setPresenceState] = useState(null)
+
+    function handlePresence(channel, payload) {
+        if (payload.event === 'sync') {
+            setPresenceState(channel.presenceState())
+        }
+    }
+
+    const { isPending, isSuccess, isError, error, channel } = useNoteChannel({ workspace_id, folder_id, onPresence: handlePresence })
+
+    useEffect(() => {
+        if (!isSuccess) return
+        channel.track({ email: curuser_email })
+    }, [isSuccess])
+
+
+    const presentEmails = Object.keys(presenceState ?? {}).map(key => {
+        return presenceState[key].map(elem => elem.email)
+    }).flat().filter(em => em != null && em !== curuser_email)
+
+    return (
+        <div>
+        {isPending && <p>Connecting to realtime ...</p> }
+        { isError && <p>Error: unable to connect to realtime: {error.message}</p> }
+        {isSuccess && <p style={{ color: 'green' }}>Connected !</p>}
+        <ul>
+        { presentEmails.map(em => {
+            return <li key={em}>{em}</li>
+        })
+        }
+        </ul>
         </div>
     )
 }
