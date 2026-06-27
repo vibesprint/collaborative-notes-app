@@ -265,6 +265,8 @@ function EditNote_Child1({ note_id }) {
     if (isError)
         return <h1>Error getting note, consider retrying</h1>
 
+    if (note == null)
+        return <h1>No note found! The note might have been deleted</h1>
 
     return <EditNoteForm note={ note } />
 
@@ -272,7 +274,7 @@ function EditNote_Child1({ note_id }) {
 }
 
 import { debounce } from '../features/utils/debounce.js'
-import { invalidateNoteData, getNote } from '../features/notes/note.js'
+import { getNote } from '../features/notes/note.js'
 import { useNoteChannel } from '../features/channels/channel.js'
 
 function EditNoteForm({ note }) {
@@ -288,8 +290,10 @@ function EditNoteForm({ note }) {
 
     const updateNote = useUpdateNote(note)
 
+    const [noteChangedRemotely, setNoteSavedRemotely] = useState(false)
     function onBroadcast(channel, payload) {
-        console.log('received broadcast', payload)
+        if (payload.event === 'note_updated')
+            setNoteSavedRemotely(true)
     }
 
 
@@ -298,8 +302,6 @@ function EditNoteForm({ note }) {
     const sendTrack = useCallback((payload) => {
         if (channel == null)
             console.log('cannot send not typing flag, channel is null')
-        else
-            console.log('SENT the not typing track')
         channel?.track(payload)
         setTyping(false)
     }, [channel, setTyping])
@@ -313,6 +315,16 @@ function EditNoteForm({ note }) {
         const timer = setTimeout(() => setRefreshError(null), 3000)
         return () => clearTimeout(timer)
     }, [refreshError])
+
+    useEffect(() => {
+        if (!updateNote.isSuccess) return
+        channel?.send({
+            type: 'broadcast',
+            event: 'note_updated',
+            payload: {}
+        })
+        setNoteSavedRemotely(false)
+    }, [updateNote.isSuccess])
 
     function handleSubmit(event) {
         event.preventDefault()
@@ -347,6 +359,7 @@ function EditNoteForm({ note }) {
         getNote(note.id).then(note => {
             setTitle(note.title)
             setBody(note.body)
+            setNoteSavedRemotely(false)
         }).catch(err => {
             setIsRefreshing(false)
         }).finally(() => {
@@ -369,6 +382,7 @@ function EditNoteForm({ note }) {
           <NoteTypingList workspace_id={note.workspace_id} note_id={note.id} />
           { isRefreshing && <h4>Refreshing ...</h4> }
           { refreshError != null && <h4 style={{ color: 'red' }}>Refresh error: {refreshError.message}</h4> }
+          { noteChangedRemotely && <p style={{ color: 'brown' }}>Note changed remotely, update to latest version</p> }
           <p style={{color: status.color}}>{status.text}</p>
           <form onSubmit={handleSubmit} className="container" >
             <textarea value={title} style={{ height: '2rem' }} name="title" onChange={handleTitleChange}
