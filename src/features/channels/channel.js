@@ -6,7 +6,19 @@ let CHANNELS = {}
 
 function getOrCreateEntry(channel_name) {
     let entry = CHANNELS[channel_name]
-    if (entry != null) return entry
+    if (entry != null) {
+        if (entry.teardownTimer != null) {
+            if (entry.status === 'tearingdown') {
+                return entry
+            }
+
+            clearTimeout(entry.teardownTimer)
+            entry.teardownTimer = null
+            entry.status = 'success'
+        }
+
+        return entry
+    }
 
     entry = {
         channel: null,
@@ -16,6 +28,7 @@ function getOrCreateEntry(channel_name) {
         onBroadcast: new Set(),
         syncFunctions: new Set(),
         refCount: 0,
+        teardownTimer: null,
     }
 
     CHANNELS[channel_name] = entry
@@ -46,9 +59,12 @@ function getOrCreateEntry(channel_name) {
 
 }
 
+const TEARDOWN_TIMER_GRACE = 2000;
+
 function useChannel(channel_name, on_presence, on_broadcast) {
 
     const [state, setState] = useState({status: 'pending', channel: null, error: null})
+    const [updateTrigger, setUpdateTrigger] = useState(false)
 
     const presenceRef = useRef(on_presence)
     const broadcastRef = useRef(on_broadcast)
@@ -58,6 +74,13 @@ function useChannel(channel_name, on_presence, on_broadcast) {
     useEffect(() => {
 
         const entry = getOrCreateEntry(channel_name)
+
+        const sync = () => setState({status: entry.status, channel: entry.channel, error: entry.error})
+        sync()
+
+        if (entry.status === 'tearingdown')
+            return
+
         entry.refCount += 1;
 
         const presenceHandler = (chan, p) => presenceRef.current?.(chan, p)
@@ -66,23 +89,28 @@ function useChannel(channel_name, on_presence, on_broadcast) {
         entry.onPresence.add(presenceHandler)
         entry.onBroadcast.add(broadcastHandler)
 
-        const sync = () => setState({status: entry.status, channel: entry.channel, error: entry.error})
         entry.syncFunctions.add(sync)
-        sync()
 
         return () => {
-            entry.onPresence.delete(presenceRef.current)
-            entry.onBroadcast.delete(broadcastRef.current)
+            entry.onPresence.delete(presenceHandler)
+            entry.onBroadcast.delete(broadcastHandler)
             entry.syncFunctions.delete(sync)
             entry.refCount -= 1;
 
             if (entry.refCount <= 0) {
-                supabase.removeChannel(entry.channel)
-                delete CHANNELS[channel_name]
+                entry.teardownTimer = setTimeout(() => {
+                    if (entry.refCount <= 0) {
+                        entry.status = 'tearingdown'
+                        supabase.removeChannel(entry.channel).then(() => {
+                            delete CHANNELS[channel_name]
+                            setUpdateTrigger(!updateTrigger)
+                        })
+                    }
+                }, TEARDOWN_TIMER_GRACE)
             }
         }
-    }, [])
-    return { isPending: state.status === 'pending', isError: state.status === 'error', isSuccess: state.status === 'success',
+    }, [channel_name, updateTrigger])
+    return { isTearingDown: state.status === 'tearingdown', isPending: state.status === 'pending', isError: state.status === 'error', isSuccess: state.status === 'success',
     error: state.error, channel: state.channel }
 }
 
