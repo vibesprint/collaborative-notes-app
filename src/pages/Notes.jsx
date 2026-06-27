@@ -281,6 +281,7 @@ function EditNoteForm({ note }) {
 
     const [title, setTitle] = useState(note.title)
     const [body, setBody] = useState(note.body)
+    const bodyRef = useRef(null)
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [refreshError, setRefreshError] = useState(null)
     const [typing, setTyping] = useState(false)
@@ -348,6 +349,7 @@ function EditNoteForm({ note }) {
     }
 
     function handleBodyChange(markdown) {
+        handleChangeCommon()
         updateNote.reset()
         setBody(markdown)
         setDirty(true)
@@ -359,6 +361,7 @@ function EditNoteForm({ note }) {
         getNote(note.id).then(note => {
             setTitle(note.title)
             setBody(note.body)
+            bodyRef.current?.setMarkdown(note.body)
             setNoteSavedRemotely(false)
         }).catch(err => {
             setIsRefreshing(false)
@@ -387,7 +390,7 @@ function EditNoteForm({ note }) {
           <form onSubmit={handleSubmit} className="container" >
             <textarea value={title} style={{ height: '2rem' }} name="title" onChange={handleTitleChange}
                 placeholder={'Title'} />
-            <MDXEditor markdown={note.body} plugins={MDXEditorPlugins} name="body"
+            <MDXEditor ref={bodyRef} markdown={note.body} plugins={MDXEditorPlugins} name="body"
                  placeholder={'Body of the note'} onChange={handleBodyChange} />
             <button type="submit">Save note</button>
             <button onClick={handleUpdate} >Update note to latest version</button>
