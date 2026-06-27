@@ -1,7 +1,7 @@
 import styles from './styles/Notes.module.css'
 import * as routes from '../routes.jsx'
 import { supabase } from '../lib/supabase/client.js'
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
@@ -293,14 +293,18 @@ function EditNoteForm({ note }) {
     }
 
 
-    const { isPending, isError, isSuccess, channel } = useNoteChannel({ workspace_id: note.workspace_id, folder_id: note.folder_id, onBroadcast })
+    const { isPending, isError, isSuccess, channel } = useNoteChannel({ workspace_id: note.workspace_id, note_id: note.id, onBroadcast })
 
-    function sendTrack(payload) {
+    const sendTrack = useCallback((payload) => {
+        if (channel == null)
+            console.log('cannot send not typing flag, channel is null')
+        else
+            console.log('SENT the not typing track')
         channel?.track(payload)
         setTyping(false)
-    }
+    }, [channel, setTyping])
 
-    const debounceSendTrack = useMemo(() => debounce(sendTrack, 3000), [])
+    const debounceSendTrack = useCallback(debounce(sendTrack, 3000), [sendTrack])
 
     const email = useAuth(state => state.user)?.email
 
@@ -320,8 +324,8 @@ function EditNoteForm({ note }) {
         if (!typing) {
             setTyping(true)
             channel.track({ email, typing: true })
-        }
-        debounceSendTrack({ email, typing: false })
+        } else
+            debounceSendTrack({ email, typing: false })
     }
 
     function handleTitleChange(event) {
@@ -361,8 +365,8 @@ function EditNoteForm({ note }) {
     return (
         <div className="main">
          <div className="container">
-          <NotePresenceList workspace_id={note.workspace_id} folder_id={note.folder_id} />
-          <NoteTypingList workspace_id={note.workspace_id} folder_id={note.folder_id} />
+          <NotePresenceList workspace_id={note.workspace_id} note_id={note.id} />
+          <NoteTypingList workspace_id={note.workspace_id} note_id={note.id} />
           { isRefreshing && <h4>Refreshing ...</h4> }
           { refreshError != null && <h4 style={{ color: 'red' }}>Refresh error: {refreshError.message}</h4> }
           <p style={{color: status.color}}>{status.text}</p>
@@ -380,15 +384,20 @@ function EditNoteForm({ note }) {
     )
 }
 
-function NoteTypingList({ workspace_id, folder_id }) {
+function NoteTypingList({ workspace_id, note_id }) {
     const [presenceState, setPresenceState] = useState(null)
-    function onPresence(channel, payload) {
-        if (payload.event === 'sync')
-            setPresenceState(channel.presenceState())
+    const onPresence = (channel, payload) => {
+        if (payload.event === 'sync') {
+            const new_st = reconcilePresenceState(channel.presenceState())
+            setPresenceState(new_st)
+        }
+
     }
 
     const { isPending, isError, isSuccess, error, channel } = useNoteChannel({ workspace_id,
-        folder_id, onPresence })
+        note_id, onPresence })
+
+    const curuser_email = useAuth(state => state.user)?.email
 
     if(isPending)
         return <p>Connecting for typing state ...</p>
@@ -398,7 +407,7 @@ function NoteTypingList({ workspace_id, folder_id }) {
 
     const typing_emails = Object.keys(presenceState ?? {}).map(key => {
         return presenceState[key]
-    }).flat().filter(em => em != null && em !== curuser_email && em.typing)
+    }).flat().filter(em => em != null && em.email !== curuser_email && em.typing).map(obj => obj.email)
 
 
     if (typing_emails.length === 0)
@@ -406,6 +415,7 @@ function NoteTypingList({ workspace_id, folder_id }) {
 
     return (
         <div>
+        <p>People typing at the moment</p>
         <ul>
         { typing_emails.map(em => {
             return <li key={em}>{em}</li>
@@ -417,21 +427,22 @@ function NoteTypingList({ workspace_id, folder_id }) {
 
 }
 
-function NotePresenceList({ workspace_id, folder_id }) {
+function NotePresenceList({ workspace_id, note_id }) {
     const curuser_email = useAuth(state => state.user)?.email
     const [presenceState, setPresenceState] = useState(null)
 
     function handlePresence(channel, payload) {
         if (payload.event === 'sync') {
-            setPresenceState(channel.presenceState())
+            const new_st = reconcilePresenceState(channel.presenceState())
+            setPresenceState(new_st)
         }
     }
 
-    const { isPending, isSuccess, isError, error, channel } = useNoteChannel({ workspace_id, folder_id, onPresence: handlePresence })
+    const { isPending, isSuccess, isError, error, channel } = useNoteChannel({ workspace_id, note_id, onPresence: handlePresence })
 
     useEffect(() => {
         if (!isSuccess) return
-        channel.track({ email: curuser_email })
+        channel.track({ email: curuser_email, typing: false})
     }, [isSuccess])
 
 
@@ -452,6 +463,16 @@ function NotePresenceList({ workspace_id, folder_id }) {
         </ul>
         </div>
     )
+}
+
+function reconcilePresenceState(presenceState) {
+    const new_state = {}
+    Object.keys(presenceState).forEach(key => {
+        const st = presenceState[key]
+        new_state[key] = [st.at(-1)]
+    })
+
+    return new_state
 }
 
 
