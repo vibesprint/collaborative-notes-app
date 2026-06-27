@@ -94,7 +94,7 @@ export async function getNote(note_id) {
     if (error != null)
         throw error
 
-    return data[0]
+    return data.length === 0 ? null : data[0]
 }
 
 export function useNote(note_id) {
@@ -106,10 +106,13 @@ export function useNote(note_id) {
 
 
 async function updateNote({note_id, title, body}) {
-    const { error } = await supabase.from('notes').update({ title, body }).eq('id', note_id)
+    const { data, error } = await supabase.from('notes').update({ title, body }).eq('id', note_id).select()
 
     if (error != null)
         throw error
+
+    if (data.length === 0)
+        throw new Error('Note not found')
 }
 
 export function useUpdateNote(note) {
