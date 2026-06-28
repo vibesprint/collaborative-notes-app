@@ -14,7 +14,12 @@ import { useWorkspaceMember, useCurrentWorkspaceId } from '../features/workspace
 import { SearchForm } from '../components/Search.jsx'
 import { useNotesListChannel } from '../features/channels/channel.js'
 import { useAuth } from '../features/auth/auth.jsx'
+import { useCommandPalette } from '../features/command_palette/command_palette.js'
 
+
+const NOTES_LIST_COMMAND_PALETTE = (focus_func) => [
+    { key: ['Ctrl', 'l'], action: focus_func }
+]
 
 export function NotesList({ workspace_id, folder_id }) {
     const [searchParams, setSearchParams] = useSearchParams()
@@ -36,6 +41,10 @@ export function NotesList({ workspace_id, folder_id }) {
     const [notice, setNotice] = useState('')
 
     const deleteNote = useDeleteNote(notesQueryKeys.list_in_folder_all(workspace_id, folder_id))
+
+    const search_field_ref = useRef()
+    const cmd_palette = useMemo(() => NOTES_LIST_COMMAND_PALETTE(() => search_field_ref.current?.focus()), [])
+    useCommandPalette(cmd_palette)
 
     useEffect(() => {
         if (!deleteNote.isError && !deleteNote.isSuccess) return
@@ -106,7 +115,7 @@ export function NotesList({ workspace_id, folder_id }) {
         {isError && <h4>Error: unable to load notes</h4>}
         {isSuccess &&
                 <>
-                <SearchForm paramKey="notes_q" label_text="Search notes: " />
+                <SearchForm search_field_ref={search_field_ref} paramKey="notes_q" label_text="Search notes: " />
                 {(filteredNotes.length === 0 ? <p>No notes</p> :
             <NotesListTable onDelete={handleDelete} notes={filteredNotes} />
         )}

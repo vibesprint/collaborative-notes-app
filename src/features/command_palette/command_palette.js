@@ -8,13 +8,24 @@
  * ]
  */
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { create } from 'zustand'
 
 const useCommandPaletteStore = create((set) => ({
-    active_palette: null,
+    active_palette: new Map(),
     global_palette: null,
-    setActivePalette: (palette) => set({ active_palette: palette }),
+    registerPalette: (id, palette) => {
+        const active = useCommandPaletteStore.getState().active_palette
+        active.set(id, palette)
+    },
+    unregisterPalette: (id) => {
+        const active = useCommandPaletteStore.getState().active_palette
+        active.delete(id)
+    },
+    updatePalette: (id, palette) => {
+        const active = useCommandPaletteStore.getState().active_palette
+        active.set(id, palette)
+    },
     setGlobalPalette: global_palette => set({ global_palette })
 }))
 
@@ -44,11 +55,13 @@ function eventHandler(event) {
 
     let found = false
     if (active_palette != null) {
-        for (let command of active_palette) {
-            if (keyMatches(event, command.key)) {
-                event.preventDefault()
-                found = true
-                command.action()
+        for (let [id, command_arr] of active_palette) {
+            for (let command of command_arr) {
+                if (keyMatches(event, command.key)) {
+                    event.preventDefault()
+                    found = true
+                    command.action()
+                }
             }
 
         }
@@ -99,12 +112,17 @@ function isEditable(element) {
 }
 
 export function useCommandPalette(palette) {
-    const setActivePalette = useCommandPaletteStore.getState().setActivePalette
+    const id = useRef(Symbol())
 
     useEffect(() => {
         const new_palette = normalize_palette(palette)
-        setActivePalette(new_palette)
-        return () => setActivePalette(null)
+        registerPalette(id.current, new_palette)
+        return () => unregisterPalette(id.current)
+    }, [])
+
+    useEffect(() => {
+        const new_palette = normalize_palette(palette)
+        updatePalette(id.current, new_palette)
     }, [palette])
 }
 
@@ -122,4 +140,16 @@ function keyMatches(event, command_key) {
         matches = matches && event.metaKey
 
     return matches
+}
+
+function registerPalette(id, palette) {
+    useCommandPaletteStore.getState().registerPalette(id, palette)
+}
+
+function unregisterPalette(id) {
+    useCommandPaletteStore.getState().unregisterPalette(id)
+}
+
+function updatePalette(id, palette) {
+    useCommandPaletteStore.getState().updatePalette(id, palette)
 }

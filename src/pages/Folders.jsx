@@ -1,5 +1,5 @@
 import { useParams, useSearchParams, Link, useNavigate } from 'react-router'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 
 import { SearchForm } from '../components/Search.jsx'
 
@@ -203,6 +203,10 @@ function FolderPresenceList({ workspace_id, folder_id }) {
     )
 }
 
+const FOLDERS_SEARCH_COMMAND_PALETTE = (folder_search_action) => [
+    { key: ['Ctrl', 'k'], action: folder_search_action }
+]
+
 export function FoldersList({ workspace_id, folder_id }) {
 
     const [searchParams, setSearchParams] = useSearchParams()
@@ -213,6 +217,13 @@ export function FoldersList({ workspace_id, folder_id }) {
 
     const { isPending: foldersIsPending, isError: foldersIsError,
         isSuccess: foldersIsSuccess, data: folders, error: foldersError } = useGetFolders(workspace_id, folder_id, folders_search, folders_page_no)
+
+    const folder_search_field = useRef(null)
+    const cmd_palette = useMemo(() => FOLDERS_SEARCH_COMMAND_PALETTE(() => {
+        folder_search_field.current?.focus()
+    }), [])
+
+    useCommandPalette(cmd_palette)
 
     function handleBroadcast(channel, payload) {
         if (payload.event === 'delete_or_create') {
@@ -279,7 +290,7 @@ export function FoldersList({ workspace_id, folder_id }) {
         {foldersIsError && <h4>Error: unable to load folders</h4>}
         {foldersIsSuccess &&
                 <>
-                <SearchForm paramKey="folders_q" label_text="Search folders by name: " />
+                <SearchForm search_field_ref={folder_search_field} paramKey="folders_q" label_text="Search folders by name: " />
                 {(filteredFolders.length === 0 ? <p>No folders</p> :
             <FolderListTable onDelete={handleDeleteFolder} list={filteredFolders} />
         )}
