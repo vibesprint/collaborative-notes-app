@@ -1,5 +1,5 @@
-import { useParams, useSearchParams, Link } from 'react-router'
-import { useState, useEffect } from 'react'
+import { useParams, useSearchParams, Link, useNavigate } from 'react-router'
+import { useState, useEffect, useMemo } from 'react'
 
 import { SearchForm } from '../components/Search.jsx'
 
@@ -14,6 +14,7 @@ import * as Routes from '../routes.jsx'
 
 import { useFolderChannel } from '../features/channels/channel.js'
 import { useAuth } from '../features/auth/auth.jsx'
+import { useCommandPalette } from '../features/command_palette/command_palette.js'
 
 
 function useGetSearchParam(key, def) {
@@ -108,6 +109,11 @@ export function CreateFolder() {
     )
 }
 
+const VIEW_FOLDER_COMMAND_PALETTE = (navigate, workspace_id, folder_id) => [
+    { key: ['Alt', 'f'], action: () => navigate(Routes.GET_CREATE_FOLDER_INSIDE(folder_id)) },
+    { key: ['Alt', 'n'], action: () => navigate(Routes.GET_CREATE_NOTE_INSIDE(folder_id)) },
+]
+
 export function ViewFolder() {
     const { isPending, isError, error, data } = useCurrentWorkspace()
 
@@ -126,14 +132,22 @@ function ViewFolder_Child1({ workspace_id }) {
     if (folder_id === 'root')
         folder_id = null
 
+    if (folder_id != null) {
+        folder_id = parseInt(folder_id)
+        folder_id = Number.isNaN(folder_id) ? undefined : folder_id
+    }
 
     if (folder_id === undefined)
         return <p>Error: no folder id to show</p>
+
 
     return <ViewFolder_Child2 workspace_id={workspace_id} folder_id={folder_id} />
 }
 
 function ViewFolder_Child2({ workspace_id, folder_id }) {
+    const navigate = useNavigate()
+    const cmd_palette = useMemo(() => VIEW_FOLDER_COMMAND_PALETTE(navigate, workspace_id, folder_id), [navigate, workspace_id, folder_id])
+    useCommandPalette(cmd_palette)
 
     return (
         <div>

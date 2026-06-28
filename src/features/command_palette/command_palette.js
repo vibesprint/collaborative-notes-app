@@ -32,11 +32,11 @@ export function useGlobalCommandPalette(palette) {
         const new_palette = normalize_palette(palette)
         setGlobalPalette(new_palette)
         return () => setGlobalPalette(null)
-    }, [])
+    }, [palette])
 }
 
 function eventHandler(event) {
-    event.preventDefault()
+    if (event.defaultPrevented) return
     if (isEditable(event.target)) return
 
     const active_palette = useCommandPaletteStore.getState().active_palette
@@ -46,6 +46,7 @@ function eventHandler(event) {
     if (active_palette != null) {
         for (let command of active_palette) {
             if (keyMatches(event, command.key)) {
+                event.preventDefault()
                 found = true
                 command.action()
             }
@@ -57,8 +58,10 @@ function eventHandler(event) {
 
     if (global_palette != null) {
         for (let command of global_palette)
-            if (keyMatches(event, command.key))
+            if (keyMatches(event, command.key)) {
                 command.action()
+                event.preventDefault()
+            }
     }
 }
 
@@ -102,7 +105,7 @@ export function useCommandPalette(palette) {
         const new_palette = normalize_palette(palette)
         setActivePalette(new_palette)
         return () => setActivePalette(null)
-    }, [])
+    }, [palette])
 }
 
 function keyMatches(event, command_key) {
