@@ -495,7 +495,11 @@ function reconcilePresenceState(presenceState) {
     const new_state = {}
     Object.keys(presenceState).forEach(key => {
         const st = presenceState[key]
-        new_state[key] = [st.at(-1)]
+        let reconciled_state = {}
+        for (let state of st) {
+            reconciled_state = { ...reconciled_state, ...state }
+        }
+        new_state[key] = [reconciled_state]
     })
 
     return new_state
