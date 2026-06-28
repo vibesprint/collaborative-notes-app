@@ -15,13 +15,23 @@ import { FoldersShell } from './pages/FoldersShell.jsx'
 import { useCurrentWorkspaceSync } from './features/workspaces/workspace.js'
 
 import { useInitAuth } from './features/auth/auth.jsx'
+import { useInitCommandPalette, useGlobalCommandPalette } from './features/command_palette/command_palette.js'
 
 import * as routes from './routes.jsx'
+
+
+const GLOBAL_PALETTE = (navigate) => [
+    { key: ['Alt', 'w'], action: () => navigate(routes.WORKSPACES) }
+]
 
 export function App() {
 
     useInitAuth()
     useCurrentWorkspaceSync()
+    useInitCommandPalette()
+
+    const navigate = useNavigate()
+    useGlobalCommandPalette(GLOBAL_PALETTE(navigate))
 
     return (
         <Routes>
