@@ -9,9 +9,14 @@
  */
 
 import { useEffect } from 'react'
+import { create } from 'zustand'
 
-let active_palette;
-let global_palette;
+const useCommandPaletteStore = create((set) => ({
+    active_palette: null,
+    global_palette: null,
+    setActivePalette: (palette) => set({ active_palette: palette }),
+    setGlobalPalette: global_palette => set({ global_palette })
+}))
 
 export function useInitCommandPalette() {
 
@@ -22,13 +27,20 @@ export function useInitCommandPalette() {
 }
 
 export function useGlobalCommandPalette(palette) {
-    const new_palette = normalize_palette(palette)
-    global_palette = new_palette
+    const setGlobalPalette = useCommandPaletteStore.getState().setGlobalPalette
+    useEffect(() => {
+        const new_palette = normalize_palette(palette)
+        setGlobalPalette(new_palette)
+        return () => setGlobalPalette(null)
+    }, [])
 }
 
 function eventHandler(event) {
     event.preventDefault()
     if (isEditable(event.target)) return
+
+    const active_palette = useCommandPaletteStore.getState().active_palette
+    const global_palette = useCommandPaletteStore.getState().global_palette
 
     let found = false
     if (active_palette != null) {
@@ -84,7 +96,13 @@ function isEditable(element) {
 }
 
 export function useCommandPalette(palette) {
-    active_palette = palette
+    const setActivePalette = useCommandPaletteStore.getState().setActivePalette
+
+    useEffect(() => {
+        const new_palette = normalize_palette(palette)
+        setActivePalette(new_palette)
+        return () => setActivePalette(null)
+    }, [])
 }
 
 function keyMatches(event, command_key) {
