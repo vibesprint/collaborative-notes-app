@@ -203,8 +203,8 @@ function FolderPresenceList({ workspace_id, folder_id }) {
     )
 }
 
-const FOLDERS_SEARCH_COMMAND_PALETTE = (folder_search_action) => [
-    { key: ['Ctrl', 'k'], action: folder_search_action }
+const FOLDERS_SEARCH_COMMAND_PALETTE = (folder_search_field_ref) => [
+    { key: ['Ctrl', 'k'], action: () => folder_search_field_ref.current?.focus() }
 ]
 
 export function FoldersList({ workspace_id, folder_id }) {
@@ -219,9 +219,7 @@ export function FoldersList({ workspace_id, folder_id }) {
         isSuccess: foldersIsSuccess, data: folders, error: foldersError } = useGetFolders(workspace_id, folder_id, folders_search, folders_page_no)
 
     const folder_search_field = useRef(null)
-    const cmd_palette = useMemo(() => FOLDERS_SEARCH_COMMAND_PALETTE(() => {
-        folder_search_field.current?.focus()
-    }), [])
+    const cmd_palette = useMemo(() => FOLDERS_SEARCH_COMMAND_PALETTE(folder_search_field), [])
 
     useCommandPalette(cmd_palette)
 

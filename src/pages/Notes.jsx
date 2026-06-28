@@ -17,8 +17,8 @@ import { useAuth } from '../features/auth/auth.jsx'
 import { useCommandPalette } from '../features/command_palette/command_palette.js'
 
 
-const NOTES_LIST_COMMAND_PALETTE = (focus_func) => [
-    { key: ['Ctrl', 'l'], action: focus_func }
+const NOTES_LIST_COMMAND_PALETTE = (search_field_ref) => [
+    { key: ['Ctrl', 'l'], action: () => search_field_ref.current?.focus() }
 ]
 
 export function NotesList({ workspace_id, folder_id }) {
@@ -43,7 +43,7 @@ export function NotesList({ workspace_id, folder_id }) {
     const deleteNote = useDeleteNote(notesQueryKeys.list_in_folder_all(workspace_id, folder_id))
 
     const search_field_ref = useRef()
-    const cmd_palette = useMemo(() => NOTES_LIST_COMMAND_PALETTE(() => search_field_ref.current?.focus()), [])
+    const cmd_palette = useMemo(() => NOTES_LIST_COMMAND_PALETTE(search_field_ref), [])
     useCommandPalette(cmd_palette)
 
     useEffect(() => {

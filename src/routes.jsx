@@ -32,3 +32,5 @@ export const ROOT = '/folder/root'
 
 export const ADD_MEMBER = '/workspace/addmember'
 export const GET_ADD_MEMBER = (wspc_id) => `/workspace/addmember?wspc_id=${wspc_id}`
+
+export const KEYBOARD_HELP = '/keyboard_help'

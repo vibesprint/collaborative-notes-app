@@ -38,7 +38,6 @@ export function useInitCommandPalette() {
 
 function eventHandler(event) {
     if (event.defaultPrevented) return
-    if (isEditable(event.target)) return
 
     const active_palette = useCommandPaletteStore.getState().active_palette
     const global_palette = useCommandPaletteStore.getState().global_palette

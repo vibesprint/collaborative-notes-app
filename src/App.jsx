@@ -12,6 +12,7 @@ import { Workspaces, CreateWorkspace, AddWorkspaceMember } from './pages/Workspa
 import { CreateNote, EditNote, Note } from './pages/Notes.jsx'
 import { ViewFolder, CreateFolder } from './pages/Folders.jsx'
 import { FoldersShell } from './pages/FoldersShell.jsx'
+import { KeyboardHelp } from './pages/KeyboardHelp.jsx'
 import { useCurrentWorkspaceSync } from './features/workspaces/workspace.js'
 
 import { useInitAuth } from './features/auth/auth.jsx'
@@ -23,7 +24,10 @@ import { useMemo } from 'react'
 
 
 const GLOBAL_PALETTE = (navigate) => [
-    { key: ['Alt', 'w'], action: () => navigate(routes.WORKSPACES) }
+    { key: ['Alt', 'w'], action: () => navigate(routes.WORKSPACES) },
+    { key: ['Alt', 'h'], action: () => navigate(routes.KEYBOARD_HELP) },
+    { key: ['Alt', 'p'], action: () => navigate(-1) },
+    { key: ['Alt', 'n'], action: () => navigate(1) }
 ]
 
 export function App() {
@@ -95,6 +99,8 @@ export function App() {
                   <ViewFolder />
             } />
         </Route>
+
+        <Route path={routes.KEYBOARD_HELP} element={<KeyboardHelp />} />
 
 
             <Route path="/login" element={<LoginPage />}/>
