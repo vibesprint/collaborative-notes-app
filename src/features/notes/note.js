@@ -63,7 +63,7 @@ async function fetchNotes(workspace_id, folder_id, searchKey, page) {
     const [start, end] = [(page - 1) * PAGE_SIZE, page * PAGE_SIZE]
     let query = supabase.from('notes').select().eq('workspace_id', workspace_id)
     if (searchKey != null && searchKey !== '')
-        query = query.textSearch('title', `'${searchKey}'`)
+        query = query.ilike('title', `%${searchKey}%`)
 
     if (folder_id == null)
         query = query.is('folder_id', null)

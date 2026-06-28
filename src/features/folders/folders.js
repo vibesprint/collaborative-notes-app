@@ -21,7 +21,7 @@ async function getFolders(workspace_id, folder_id, search, page) {
         query = query.eq('parent_id', folder_id)
 
     if (search && search !== '')
-        query = query.textSearch('title', `'${search}'`)
+        query = query.ilike('name', `%${search}%`)
 
     query = query.range(start, end)
 
