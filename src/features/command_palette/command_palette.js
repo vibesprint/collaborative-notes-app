@@ -13,7 +13,6 @@ import { create } from 'zustand'
 
 const useCommandPaletteStore = create((set) => ({
     active_palette: new Map(),
-    global_palette: null,
     registerPalette: (id, palette) => {
         const active = useCommandPaletteStore.getState().active_palette
         active.set(id, palette)
@@ -26,7 +25,6 @@ const useCommandPaletteStore = create((set) => ({
         const active = useCommandPaletteStore.getState().active_palette
         active.set(id, palette)
     },
-    setGlobalPalette: global_palette => set({ global_palette })
 }))
 
 export function useInitCommandPalette() {
@@ -37,14 +35,6 @@ export function useInitCommandPalette() {
     }, [])
 }
 
-export function useGlobalCommandPalette(palette) {
-    const setGlobalPalette = useCommandPaletteStore.getState().setGlobalPalette
-    useEffect(() => {
-        const new_palette = normalize_palette(palette)
-        setGlobalPalette(new_palette)
-        return () => setGlobalPalette(null)
-    }, [palette])
-}
 
 function eventHandler(event) {
     if (event.defaultPrevented) return
@@ -53,29 +43,19 @@ function eventHandler(event) {
     const active_palette = useCommandPaletteStore.getState().active_palette
     const global_palette = useCommandPaletteStore.getState().global_palette
 
-    let found = false
     if (active_palette != null) {
         for (let [id, command_arr] of active_palette) {
             for (let command of command_arr) {
                 if (keyMatches(event, command.key)) {
                     event.preventDefault()
-                    found = true
                     command.action()
+                    break
                 }
             }
 
         }
     }
 
-    if (found) return
-
-    if (global_palette != null) {
-        for (let command of global_palette)
-            if (keyMatches(event, command.key)) {
-                command.action()
-                event.preventDefault()
-            }
-    }
 }
 
 function normalize_palette(palette) {

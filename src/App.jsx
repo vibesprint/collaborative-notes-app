@@ -15,9 +15,11 @@ import { FoldersShell } from './pages/FoldersShell.jsx'
 import { useCurrentWorkspaceSync } from './features/workspaces/workspace.js'
 
 import { useInitAuth } from './features/auth/auth.jsx'
-import { useInitCommandPalette, useGlobalCommandPalette } from './features/command_palette/command_palette.js'
+import { useInitCommandPalette, useCommandPalette } from './features/command_palette/command_palette.js'
 
 import * as routes from './routes.jsx'
+
+import { useMemo } from 'react'
 
 
 const GLOBAL_PALETTE = (navigate) => [
@@ -31,7 +33,8 @@ export function App() {
     useInitCommandPalette()
 
     const navigate = useNavigate()
-    useGlobalCommandPalette(GLOBAL_PALETTE(navigate))
+    const cmd_palette = useMemo(() => GLOBAL_PALETTE(navigate), [navigate])
+    useCommandPalette(cmd_palette)
 
     return (
         <Routes>
