@@ -39,7 +39,6 @@ export const ROUTES = [{
                 {
                 Component: ProtectedRoute,
                     children: [
-                        { index: true, Component: HomePage },
                         { path: routes.WORKSPACES, Component: Workspaces },
                         { path: routes.WORKSPACES_CREATE, Component: CreateWorkspace },
                         { path: routes.ADD_MEMBER, Component: AddWorkspaceMember },
@@ -53,6 +52,7 @@ export const ROUTES = [{
                             ]},
                     ]},
 
+                { index: true, Component: HomePage },
                 { path: "/login", Component: LoginPage },
                 { path: "/logout", Component: LogoutPage },
                 { path: routes.KEYBOARD_HELP, Component: KeyboardHelp },
