@@ -3,13 +3,11 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 
 import { SearchForm } from '../components/Search.jsx'
 
-import {useCreateFolder, useGetFolder, useDeleteFolder, useGetFolders, invalidateFolderData,
+import {useCreateFolder, useDeleteFolder, useGetFolders, invalidateFolderData,
      PAGE_SIZE as FOLDERS_PAGE_SIZE } from '../features/folders/folders.js'
-import { useGetNotes } from '../features/notes/note.js'
 
 import { useCurrentWorkspace } from '../features/workspaces/workspace.js'
 import { NotesList } from './Notes.jsx'
-import { QUERY_KEYS as notesQueryKeys, useDeleteNote, PAGE_SIZE as NOTES_PAGE_SIZE } from '../features/notes/note.js'
 import * as Routes from '../routes.jsx'
 
 import { useFolderChannel } from '../features/channels/channel.js'

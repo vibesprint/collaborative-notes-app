@@ -1,12 +1,11 @@
 import styles from './styles/AppShell.module.css'
 
-import { Routes, Route, Outlet, Link } from 'react-router'
+import { Outlet, Link } from 'react-router'
 import { getSidebarByLogIn } from './Sidebar.jsx'
 
 import { useAuth } from '../features/auth/auth.jsx'
 import { useCurrentWorkspace, useCurrentWorkspaceMembership } from '../features/workspaces/workspace.js'
 
-import { useEffect } from 'react'
 
 export function AppShell() {
     const loggedIn = useAuth(state => !!state.session)

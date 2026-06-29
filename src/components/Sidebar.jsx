@@ -1,5 +1,4 @@
 import styles from './styles/Sidebar.module.css'
-import { Link } from 'react-router'
 
 export function getSidebarByLogIn(loggedIn) {
     if (loggedIn)

@@ -1,10 +1,7 @@
-import styles from './styles/Notes.module.css'
 import * as routes from '../routes.jsx'
-import { supabase } from '../lib/supabase/client.js'
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 
-import { useQuery, useMutation } from '@tanstack/react-query'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 
 import { useCreateNote, useDeleteNote,
     useGetNotes, useNote, useUpdateNote, invalidateNotesInFolderData,

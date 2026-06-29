@@ -1,10 +1,8 @@
 import styles from './styles/Workspaces.module.css'
 import * as routes from '../routes.jsx'
-import { supabase } from '../lib/supabase/client.js'
 import { useWorkspaceList, useCreateWorkspace, useWorkspaceMember,
     useDeleteWorkspace, useSetSelectedId, useAddWorkspaceMember } from '../features/workspaces/workspace.js'
 
-import { useQuery, useMutation } from '@tanstack/react-query'
 import { Link, useSearchParams, useNavigate } from 'react-router'
 
 import { useState, useEffect } from 'react'
