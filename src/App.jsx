@@ -1,6 +1,6 @@
 import './styles.css'
 
-import { Routes, Route, useNavigate } from 'react-router'
+import { Routes, Route, useNavigate, Outlet } from 'react-router'
 import { AppShell } from './components/AppShell.jsx'
 import { NotFoundPage } from './pages/NotFoundPage.jsx'
 import { LoginPage } from './pages/LoginPage.jsx'
@@ -30,6 +30,39 @@ const GLOBAL_PALETTE = (navigate) => [
     { key: ['Alt', 'n'], action: () => navigate(1) }
 ]
 
+export const ROUTES = [{
+    Component: App,
+    children: [
+        {
+            Component: AppShell,
+            children: [
+                {
+                Component: ProtectedRoute,
+                    children: [
+                        { index: true, Component: HomePage },
+                        { path: routes.WORKSPACES, Component: Workspaces },
+                        { path: routes.WORKSPACES_CREATE, Component: CreateWorkspace },
+                        { path: routes.ADD_MEMBER, Component: AddWorkspaceMember },
+                        { path: routes.NOTES_CREATE, Component: CreateNote },
+                        { path: routes.EDIT_NOTE, Component: EditNote },
+                        { path: routes.NOTE, Component: Note },
+                        { Component: FoldersShell,
+                            children: [
+                                { path: routes.FOLDERS_CREATE, Component: CreateFolder },
+                                { path: routes.FOLDER, Component: ViewFolder },
+                            ]},
+                    ]},
+
+                { path: "/login", Component: LoginPage },
+                { path: "/logout", Component: LogoutPage },
+                { path: routes.KEYBOARD_HELP, Component: KeyboardHelp },
+                { path: "/signup", Component: SignUpPage },
+                { path: '*', Component: NotFoundPage },
+            ]
+        }
+    ]
+}]
+
 export function App() {
 
     useInitAuth()
@@ -40,75 +73,5 @@ export function App() {
     const cmd_palette = useMemo(() => GLOBAL_PALETTE(navigate), [navigate])
     useCommandPalette(cmd_palette)
 
-    return (
-        <Routes>
-          <Route element={<AppShell />}>
-            <Route index element={
-                <ProtectedRoute ifNotLoggedIn={<HomePageNotLoggedIn />}>
-                  <HomePage />
-                 </ProtectedRoute>
-            }/>
-
-        <Route path={routes.WORKSPACES} element={
-            <ProtectedRoute>
-              <Workspaces />
-            </ProtectedRoute>
-        } />
-
-        <Route path={routes.WORKSPACES_CREATE} element={
-            <ProtectedRoute>
-              <CreateWorkspace />
-            </ProtectedRoute>
-        } />
-
-        <Route path={routes.ADD_MEMBER} element={
-            <ProtectedRoute>
-              <AddWorkspaceMember />
-            </ProtectedRoute>
-        } />
-
-        <Route path={routes.NOTES_CREATE} element={
-            <ProtectedRoute>
-              <CreateNote />
-            </ProtectedRoute>
-        } />
-
-        <Route path={routes.EDIT_NOTE} element={
-            <ProtectedRoute>
-              <EditNote />
-            </ProtectedRoute>
-        } />
-
-        <Route path={routes.NOTE} element={
-            <ProtectedRoute>
-              <Note />
-            </ProtectedRoute>
-        } />
-
-        <Route element={
-            <ProtectedRoute>
-              <FoldersShell />
-            </ProtectedRoute>
-        }>
-
-            <Route path={routes.FOLDERS_CREATE} element={
-                  <CreateFolder />
-            } />
-
-            <Route path={routes.FOLDER} element={
-                  <ViewFolder />
-            } />
-        </Route>
-
-        <Route path={routes.KEYBOARD_HELP} element={<KeyboardHelp />} />
-
-
-            <Route path="/login" element={<LoginPage />}/>
-            <Route path="/logout" element={<LogoutPage />}/>
-            <Route path="/signup" element={<SignUpPage />}/>
-            <Route path="*" element={<NotFoundPage />} />
-          </Route>
-
-        </Routes>
-    )
+    return <Outlet />
 }

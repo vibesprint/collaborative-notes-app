@@ -1,5 +1,6 @@
 import styles from './styles/UnauthorizedPage.module.css'
 import { useAuth } from './features/auth/auth.jsx'
+import { Outlet } from 'react-router'
 
 export function ProtectedRoute({ ifNotLoggedIn, children }) {
     const loggedIn = useAuth(state => !!state.session)
@@ -11,7 +12,7 @@ export function ProtectedRoute({ ifNotLoggedIn, children }) {
             return <UnauthorizedPage />
     }
 
-    return children
+    return <Outlet />
 }
 
 
