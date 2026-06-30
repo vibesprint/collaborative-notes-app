@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { renderWithProviders } from '../../test/utils/renderWithProviders.jsx'
 
@@ -339,5 +339,130 @@ describe('EditNote (entry guard)', () => {
             routes: [{ path: '/notes/:id/edit', element: <EditNote /> }],
         })
         expect(screen.getByText(/invalid note id/i)).toBeInTheDocument()
+    })
+})
+
+// ---------------------------------------------------------------------------
+//                          EditNoteForm (via EditNote)
+// ---------------------------------------------------------------------------
+
+describe('EditNoteForm', () => {
+    const baseNote = {
+        id: 42,
+        title: 'My Note',
+        body: 'body text',
+        workspace_id: 'ws1',
+        folder_id: null,
+        user_id: 'u-author',
+        updated_at: '2026-01-01T00:00:00Z',
+    }
+
+    function renderEdit() {
+        return renderWithProviders(null, {
+            initialEntries: ['/notes/42/edit'],
+            routes: [{ path: '/notes/:id/edit', element: <EditNote /> }],
+        })
+    }
+
+    // Capture the broadcast callback EditNoteForm passes to useNoteChannel so
+    // tests can fire `note_updated` events at will. Presence callbacks (from
+    // NotePresenceList / NoteTypingList) are ignored.
+    function installChannelCapture() {
+        const channel = makeChannel()
+        let broadcastCb = null
+        m.useNoteChannel.mockImplementation(({ onBroadcast }) => {
+            if (onBroadcast) broadcastCb = onBroadcast
+            return { channel, isPending: false, isError: false, isSuccess: true }
+        })
+        return { channel, fireBroadcast: (payload) => broadcastCb?.(channel, payload) }
+    }
+
+    beforeEach(() => {
+        m.useNote.mockReturnValue(success(baseNote))
+        m.useUpdateNote.mockReturnValue(mutation())
+    })
+
+    it('pre-populates the title input and the MDX editor from the note', () => {
+        renderEdit()
+        expect(screen.getByPlaceholderText(/^title$/i)).toHaveValue('My Note')
+        expect(screen.getByTestId('mdx-editor')).toHaveValue('body text')
+    })
+
+    it('clicking "Save note" calls updateNote.mutate with the current title/body', async () => {
+        const update = mutation()
+        m.useUpdateNote.mockReturnValue(update)
+        renderEdit()
+
+        await userEvent.click(screen.getByRole('button', { name: /save note/i }))
+
+        expect(update.mutate).toHaveBeenCalledExactlyOnceWith({
+            note_id: 42,
+            title:   'My Note',
+            body:    'body text',
+        })
+    })
+
+    it('shows "Unchanged" initially and switches to "Unsaved" after typing into the title', async () => {
+        renderEdit()
+        expect(screen.getByText(/^unchanged$/i)).toBeInTheDocument()
+
+        await userEvent.type(screen.getByPlaceholderText(/^title$/i), '!')
+        expect(screen.getByText(/^unsaved$/i)).toBeInTheDocument()
+    })
+
+    it('renders the "Saving ..." status while the mutation is pending', () => {
+        m.useUpdateNote.mockReturnValue(mutation({ isPending: true }))
+        renderEdit()
+        expect(screen.getByText(/saving \.\.\./i)).toBeInTheDocument()
+    })
+
+    it('renders the "Saved" status when the mutation succeeds', () => {
+        m.useUpdateNote.mockReturnValue(mutation({ isSuccess: true }))
+        renderEdit()
+        expect(screen.getByText(/^saved$/i)).toBeInTheDocument()
+    })
+
+    it('renders the error status when the mutation errors', () => {
+        m.useUpdateNote.mockReturnValue(mutation({ isError: true, error: new Error('nope') }))
+        renderEdit()
+        expect(screen.getByText(/error, unable to save/i)).toBeInTheDocument()
+    })
+
+    it('broadcasts "note_updated" on the channel when the mutation succeeds', async () => {
+        const { channel } = installChannelCapture()
+        m.useUpdateNote.mockReturnValue(mutation({ isSuccess: true }))
+        renderEdit()
+
+        await waitFor(() => {
+            expect(channel.send).toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'broadcast', event: 'note_updated' })
+            )
+        })
+    })
+
+    it('shows "Note changed remotely" when a note_updated broadcast arrives', async () => {
+        const { fireBroadcast } = installChannelCapture()
+        renderEdit()
+        expect(screen.queryByText(/note changed remotely/i)).not.toBeInTheDocument()
+
+        await act(async () => { fireBroadcast({ event: 'note_updated' }) })
+
+        expect(screen.getByText(/note changed remotely/i)).toBeInTheDocument()
+    })
+
+    it('"Update note to latest version" fetches the note again and overwrites the form fields', async () => {
+        m.getNote.mockResolvedValue({
+            ...baseNote,
+            title: 'Refreshed Title',
+            body:  'refreshed body',
+        })
+        renderEdit()
+
+        await userEvent.click(screen.getByRole('button', { name: /update note to latest version/i }))
+
+        await waitFor(() => {
+            expect(screen.getByPlaceholderText(/^title$/i)).toHaveValue('Refreshed Title')
+            expect(screen.getByTestId('mdx-editor')).toHaveValue('refreshed body')
+        })
     })
 })
