@@ -64,7 +64,7 @@ function normalize_palette(palette) {
     }))
 }
 
-function normalize_key(key_comb) {
+export function normalize_key(key_comb) {
      if (key_comb.length < 1) throw new Error('empty key combination is invalid')
     const pattern = /^[a-zA-Z0-9]+$/i
     const modifiers = ['Shift', 'Ctrl', 'Meta', 'Alt']
@@ -105,7 +105,7 @@ export function useCommandPalette(palette) {
     }, [palette])
 }
 
-function keyMatches(event, command_key) {
+export function keyMatches(event, command_key) {
     const event_key = event.key
     let matches = event_key === command_key.at(-1)
 
