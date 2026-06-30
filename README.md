@@ -4,6 +4,11 @@ A simple realtime collaborative notes app made using supabase at the backend.
 * Scripts for supabase Row Level Security and policies and triggers and functions have not been added to this repo.
 * Full database schema have also not been added.
 
+# Environment variables
+Two environment variables are required :-
+* `VITE_SUPABASE_URL`
+* `VITE_SUPABASE_PUBLISHABLE_KEY`
+
 # Routes
 All the routes string and maker are in routes.jsx, except for some routes.
 

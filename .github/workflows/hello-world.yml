@@ -1,0 +1,23 @@
+name: GitHub Actions Hello World
+
+# 1. Define the trigger event
+on:
+  push:
+    branches: [ "main" ]
+
+# 2. Group the tasks together
+jobs:
+  say-hello-job:
+    # Specify the operating system server environment
+    runs-on: ubuntu-latest
+
+    # 3. List individual tasks sequentially
+    steps:
+      # Step 1: Clone your repository files onto the runner
+      - name: Check out repository code
+        uses: actions/checkout@v7
+
+      # Step 2: Execute a standard shell command
+      - name: Run a one-line script
+        run: echo "Hello, world! GitHub Actions is working smoothly."
+
