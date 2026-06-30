@@ -1,5 +1,8 @@
-# Capstone Project
-Final project to mark the completion of this learning path.
+# Learning Project
+A simple realtime collaborative notes app made using supabase at the backend.
+
+* Scripts for supabase Row Level Security and policies and triggers and functions have not been added to this repo.
+* Full database schema have also not been added.
 
 # Routes
 All the routes string and maker are in routes.jsx, except for some routes.
