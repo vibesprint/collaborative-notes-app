@@ -8,7 +8,9 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch"
   },
   "dependencies": {
     "@mdxeditor/editor": "^4.0.4",
@@ -36,6 +38,7 @@
     "eslint-plugin-unused-imports": "^4.4.1",
     "globals": "^17.6.0",
     "jsdom": "^29.1.1",
+    "typescript": "^6.0.3",
     "vite": "^8.0.12",
     "vite-bundle-visualizer": "^1.2.1",
     "vitest": "^4.1.9"
